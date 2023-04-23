@@ -16,7 +16,7 @@
         rec {
           packages = {
             wyrhta = naersk-lib.buildPackage {
-              root = ./.;
+              root = ./api;
               doCheck = true;
             };
             default = packages.wyrhta;
