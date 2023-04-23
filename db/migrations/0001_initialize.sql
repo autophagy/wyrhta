@@ -1,7 +1,8 @@
 CREATE TABLE projects (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
-    description TEXT
+    description TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now'))
 );
 
 CREATE TABLE states (
@@ -37,6 +38,7 @@ CREATE TABLE works (
     notes TEXT,
     clay_id INTEGER,
     glaze_description TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
     FOREIGN KEY (project_id) REFERENCES projects (id),
     FOREIGN KEY (clay_id) REFERENCES clays (id)
 );
@@ -44,8 +46,10 @@ CREATE TABLE works (
 CREATE TABLE events (
     id INTEGER PRIMARY KEY,
     work_id INTEGER NOT NULL,
-    state_id INTEGER NOT NULL,
-    event_datetime TEXT NOT NULL,
+    previous_state INTEGER,
+    current_state INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
     FOREIGN KEY (work_id) REFERENCES works (id),
-    FOREIGN KEY (state_id) REFERENCES states (id)
+    FOREIGN KEY (previous_state) REFERENCES states (id),
+    FOREIGN KEY (current_state) REFERENCES states (id)
 );
