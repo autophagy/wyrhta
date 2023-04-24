@@ -15,7 +15,8 @@ INSERT INTO states (id, name) VALUES
     (2, 'Trimming'),
     (3, 'Awaiting Bisque Firing'),
     (4, 'Awaiting Glaze Firing'),
-    (5, 'Recycled');
+    (5, 'Finished'),
+    (6, 'Recycled');
 
 CREATE TABLE clays (
     id INTEGER PRIMARY KEY,
@@ -34,7 +35,6 @@ CREATE TABLE works (
     id INTEGER PRIMARY KEY,
     project_id INTEGER,
     name TEXT NOT NULL,
-    description TEXT,
     notes TEXT,
     clay_id INTEGER,
     glaze_description TEXT,

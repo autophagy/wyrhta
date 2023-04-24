@@ -1,11 +1,13 @@
 mod handlers;
+mod models;
 
 use axum::{http::StatusCode, routing::get, Router};
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 use std::net::SocketAddr;
 
 use handlers::event::events;
-use handlers::project::{project, projects, works};
+use handlers::project::{project, projects, works as project_works};
+use handlers::work::{events as work_events, work, works};
 
 #[tokio::main]
 async fn main() {
@@ -25,8 +27,11 @@ async fn main() {
     let app = Router::new()
         .route("/projects", get(projects))
         .route("/projects/:id", get(project))
-        .route("/projects/:id/works", get(works))
+        .route("/projects/:id/works", get(project_works))
         .route("/events", get(events))
+        .route("/works", get(works))
+        .route("/works/:id", get(work))
+        .route("/works/:id/events", get(work_events))
         .with_state(pool);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
