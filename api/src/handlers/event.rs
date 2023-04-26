@@ -1,6 +1,10 @@
 use axum::response::IntoResponse;
-use axum::{extract::State, Json};
+use axum::{
+    extract::{Query, State},
+    Json,
+};
 use chrono::NaiveDateTime;
+use serde::Deserialize;
 use sqlx::sqlite::SqlitePool;
 
 use crate::internal_error;
@@ -27,8 +31,16 @@ impl From<EventDTO> for Event {
     }
 }
 
-pub(crate) async fn events(State(pool): State<SqlitePool>) -> impl IntoResponse {
-    sqlx::query_as::<_, EventDTO>(
+#[derive(Debug, Deserialize)]
+pub struct Limit {
+    limit: Option<i64>,
+}
+
+pub(crate) async fn events(
+    State(pool): State<SqlitePool>,
+    Query(limit): Query<Limit>,
+) -> impl IntoResponse {
+    let mut query_string = String::from(
         "SELECT e.id, e.work_id, s1.id AS previous_state_id,
         s2.id AS current_state_id, e.created_at
         FROM events e
@@ -36,10 +48,18 @@ pub(crate) async fn events(State(pool): State<SqlitePool>) -> impl IntoResponse 
         LEFT JOIN states s2 ON e.current_state = s2.id
         JOIN works w ON e.work_id = w.id
         ORDER BY e.created_at DESC",
-    )
-    .fetch_all(&pool)
-    .await
-    .map(|events| events.into_iter().map(Event::from).collect::<Vec<Event>>())
-    .map(Json)
-    .map_err(internal_error)
+    );
+
+    if let Some(limit_value) = limit.limit {
+        query_string.push_str(&format!(" LIMIT {}", limit_value));
+    }
+
+    let query = sqlx::query_as::<_, EventDTO>(&query_string);
+
+    query
+        .fetch_all(&pool)
+        .await
+        .map(|events| events.into_iter().map(Event::from).collect::<Vec<Event>>())
+        .map(Json)
+        .map_err(internal_error)
 }

@@ -1,4 +1,4 @@
-module Api.Event exposing (Event, getEvents)
+module Api.Event exposing (Event, getEvents, getEventsWithLimit)
 
 import Api exposing (ApiResource, apiResourceDecoder)
 import Api.State exposing (State, stateDecoder)
@@ -21,6 +21,14 @@ getEvents : { onResponse : Result Http.Error (List Event) -> msg } -> Cmd msg
 getEvents options =
     Http.get
         { url = "http://localhost:8000/events"
+        , expect = Http.expectJson options.onResponse eventsDecoder
+        }
+
+
+getEventsWithLimit : Int -> { onResponse : Result Http.Error (List Event) -> msg } -> Cmd msg
+getEventsWithLimit limit options =
+    Http.get
+        { url = "http://localhost:8000/events?limit=" ++ String.fromInt limit
         , expect = Http.expectJson options.onResponse eventsDecoder
         }
 

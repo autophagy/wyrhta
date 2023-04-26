@@ -1,7 +1,7 @@
 module Pages.Home_ exposing (Model, Msg, page)
 
 import Api
-import Api.Event exposing (Event, getEvents)
+import Api.Event exposing (Event, getEventsWithLimit)
 import Api.Project exposing (Project, getProjects)
 import Api.State as State
 import Dict exposing (Dict)
@@ -37,7 +37,7 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     ( { projectData = Api.Loading, eventsData = Api.Loading }
-    , Cmd.batch [ getProjects { onResponse = ApiRespondedProjects }, getEvents { onResponse = ApiRespondedEvents } ]
+    , Cmd.batch [ getProjects { onResponse = ApiRespondedProjects }, getEventsWithLimit 5 { onResponse = ApiRespondedEvents } ]
     )
 
 
@@ -207,17 +207,23 @@ view model =
             case model.projectData of
                 Api.Success projects ->
                     Html.div [] (List.map viewProject projects)
-                Api.Loading -> Html.div [] [ Html.text "..." ]
-                Api.Failure _ -> Html.div [] [ Html.text "Failed to load :(" ]
 
+                Api.Loading ->
+                    Html.div [] [ Html.text "..." ]
+
+                Api.Failure _ ->
+                    Html.div [] [ Html.text "Failed to load :(" ]
 
         eventsView =
             case model.eventsData of
                 Api.Success events ->
-                    Html.div [] (viewEvents (groupEvents (List.take 5 events)))
-                Api.Loading -> Html.div [] [ Html.text "..." ]
-                Api.Failure _ -> Html.div [] [ Html.text "Failed to load :(" ]
+                    Html.div [] (viewEvents (groupEvents events))
 
+                Api.Loading ->
+                    Html.div [] [ Html.text "..." ]
+
+                Api.Failure _ ->
+                    Html.div [] [ Html.text "Failed to load :(" ]
     in
     { title = "Wyrhta Ceramics"
     , body =
