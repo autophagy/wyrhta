@@ -41,18 +41,13 @@ init =
     )
 
 
-dStr : Event -> String
-dStr e =
-    String.fromInt (toYear utc e.created_at)
-        ++ "."
-        ++ toMonthStr (toMonth utc e.created_at)
-        ++ "."
-        ++ String.fromInt (toDay utc e.created_at)
-
-
 groupEvents : List Event -> Dict String (List Event)
 groupEvents events =
-    groupBy dStr events
+    let
+        eventToString =
+            \e -> String.join "." [ String.fromInt (toYear utc e.created_at), toMonthStr (toMonth utc e.created_at), String.pad 2 '0' <| String.fromInt (toDay utc e.created_at) ]
+    in
+    groupBy eventToString events
 
 
 
