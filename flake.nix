@@ -22,9 +22,16 @@
             default = packages.wyrhta;
           };
 
-          devShell = with pkgs; mkShell {
-            buildInputs = [ cargo rustc rustfmt rustPackages.clippy nodejs ];
-            RUST_SRC_PATH = rustPlatform.rustLibSrc;
+          devShells = {
+            api = with pkgs; mkShell {
+              buildInputs = [ cargo rustc rustfmt rustPackages.clippy sqlite-interactive ];
+              RUST_SRC_PATH = rustPlatform.rustLibSrc;
+            };
+
+            frontend = with pkgs; mkShell {
+              buildInputs = [ nodejs ];
+            };
+
           };
 
           formatter = pkgs.nixpkgs-fmt;
