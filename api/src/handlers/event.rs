@@ -34,7 +34,8 @@ pub(crate) async fn events(State(pool): State<SqlitePool>) -> impl IntoResponse 
         FROM events e
         LEFT JOIN states s1 ON e.previous_state = s1.id
         LEFT JOIN states s2 ON e.current_state = s2.id
-        JOIN works w ON e.work_id = w.id",
+        JOIN works w ON e.work_id = w.id
+        ORDER BY e.created_at DESC",
     )
     .fetch_all(&pool)
     .await

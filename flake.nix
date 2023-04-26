@@ -23,7 +23,7 @@
           };
 
           devShell = with pkgs; mkShell {
-            buildInputs = [ cargo rustc rustfmt rustPackages.clippy ];
+            buildInputs = [ cargo rustc rustfmt rustPackages.clippy nodejs ];
             RUST_SRC_PATH = rustPlatform.rustLibSrc;
           };
 
