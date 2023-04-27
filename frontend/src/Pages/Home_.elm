@@ -114,7 +114,7 @@ viewProject : Project -> Html Msg
 viewProject project =
     Html.div
         [ class "project" ]
-        [ Html.div [ class "project-name" ] [ Html.text project.name ]
+        [ Html.div [ class "project-name" ] [ Html.a [ Html.Attributes.href ("/projects/" ++ String.fromInt project.id) ] [ Html.text project.name ] ]
         , Html.div [ class "project-description" ] [ Html.text (Maybe.withDefault "" project.description) ]
         ]
 
