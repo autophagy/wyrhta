@@ -1,8 +1,10 @@
 mod handlers;
 mod models;
 
-use axum::{http::StatusCode, routing::get, Router};
+use axum::{http::StatusCode, response::IntoResponse, routing::get, Json, Router};
+use serde::Serialize;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
+use std::error::Error;
 use std::net::SocketAddr;
 
 use handlers::event::events;
@@ -42,9 +44,21 @@ async fn main() {
         .unwrap();
 }
 
-fn internal_error<E>(err: E) -> (StatusCode, String)
+fn internal_error<E>(_: E) -> StatusCode
 where
     E: std::error::Error,
 {
-    (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
+    StatusCode::INTERNAL_SERVER_ERROR
+}
+
+fn handle_optional_result<T, E>(result: Result<Option<T>, E>) -> impl IntoResponse
+where
+    T: Serialize,
+    E: Error,
+{
+    match result {
+        Ok(Some(value)) => Json(value).into_response(),
+        Ok(None) => StatusCode::NOT_FOUND.into_response(),
+        Err(err) => internal_error(err).into_response(),
+    }
 }

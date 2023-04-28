@@ -7,6 +7,7 @@ use chrono::NaiveDateTime;
 use serde::Serialize;
 use sqlx::sqlite::SqlitePool;
 
+use crate::handle_optional_result;
 use crate::internal_error;
 use crate::models::{ApiResource, Clay, Event, State as WorkState, Work};
 
@@ -69,7 +70,8 @@ pub(crate) async fn works(State(pool): State<SqlitePool>) -> impl IntoResponse {
 }
 
 pub(crate) async fn work(Path(id): Path<i32>, State(pool): State<SqlitePool>) -> impl IntoResponse {
-    sqlx::query_as::<_, WorkDTO>(
+    handle_optional_result(
+        sqlx::query_as::<_, WorkDTO>(
         "SELECT w.id, w.project_id, w.name, w.notes, w.glaze_description, w.created_at,
         e.current_state_id, c.id as clay_id, c.name as clay_name, c.description as clay_description, c.shrinkage as clay_shrinkage
         FROM works w
@@ -85,11 +87,10 @@ pub(crate) async fn work(Path(id): Path<i32>, State(pool): State<SqlitePool>) ->
         JOIN clays c ON w.clay_id = c.id
         WHERE w.id = ?")
         .bind(id)
-        .fetch_one(&pool)
+        .fetch_optional(&pool)
         .await
-        .map(Work::from)
-        .map(Json)
-        .map_err(internal_error)
+        .map(|opt_work| opt_work.map(Work::from))
+    )
 }
 
 #[derive(sqlx::FromRow)]

@@ -7,6 +7,7 @@ use chrono::NaiveDateTime;
 use serde::Serialize;
 use sqlx::sqlite::SqlitePool;
 
+use crate::handle_optional_result;
 use crate::internal_error;
 use crate::models::{ApiResource, Clay, Project, Work};
 
@@ -47,15 +48,15 @@ pub(crate) async fn project(
     Path(id): Path<i32>,
     State(pool): State<SqlitePool>,
 ) -> impl IntoResponse {
-    sqlx::query_as::<_, ProjectDTO>(
-        "SELECT id, name, description, created_at FROM projects WHERE id = ?",
+    handle_optional_result(
+        sqlx::query_as::<_, ProjectDTO>(
+            "SELECT id, name, description, created_at FROM projects WHERE id = ?",
+        )
+        .bind(id)
+        .fetch_optional(&pool)
+        .await
+        .map(|opt_project| opt_project.map(Project::from)),
     )
-    .bind(id)
-    .fetch_one(&pool)
-    .await
-    .map(Project::from)
-    .map(Json)
-    .map_err(internal_error)
 }
 
 #[derive(sqlx::FromRow, Serialize)]
