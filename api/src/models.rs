@@ -81,13 +81,19 @@ impl From<(ApiResource, i32)> for ApiResourceReference {
 }
 
 #[derive(Serialize)]
+pub(crate) struct CurrentState {
+    pub(crate) state: State,
+    pub(crate) transitioned_at: NaiveDateTime,
+}
+
+#[derive(Serialize)]
 pub(crate) struct Work {
     pub(crate) id: i32,
     pub(crate) project: ApiResourceReference,
     pub(crate) name: String,
     pub(crate) notes: Option<String>,
     pub(crate) clay: Clay,
-    pub(crate) current_state: State,
+    pub(crate) current_state: CurrentState,
     pub(crate) glaze_description: Option<String>,
     pub(crate) created_at: NaiveDateTime,
 }

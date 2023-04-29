@@ -9,7 +9,7 @@ use sqlx::sqlite::SqlitePool;
 
 use crate::handle_optional_result;
 use crate::internal_error;
-use crate::models::{ApiResource, Clay, Event, State as WorkState, Work};
+use crate::models::{ApiResource, Clay, CurrentState, Event, State as WorkState, Work};
 
 #[derive(sqlx::FromRow, Serialize)]
 struct WorkDTO {
@@ -22,6 +22,7 @@ struct WorkDTO {
     clay_description: Option<String>,
     clay_shrinkage: f64,
     current_state_id: i32,
+    current_state_transitioned: NaiveDateTime,
     glaze_description: Option<String>,
     created_at: NaiveDateTime,
 }
@@ -41,7 +42,10 @@ impl From<WorkDTO> for Work {
             name: value.name,
             notes: value.notes,
             clay,
-            current_state: value.current_state_id.into(),
+            current_state: CurrentState {
+                state: value.current_state_id.into(),
+                transitioned_at: value.current_state_transitioned,
+            },
             glaze_description: value.glaze_description,
             created_at: value.created_at,
         }
@@ -50,10 +54,11 @@ impl From<WorkDTO> for Work {
 pub(crate) async fn works(State(pool): State<SqlitePool>) -> impl IntoResponse {
     sqlx::query_as::<_, WorkDTO>(
         "SELECT w.id, w.project_id, w.name, w.notes, w.glaze_description, w.created_at,
-        e.current_state_id, c.id as clay_id, c.name as clay_name, c.description as clay_description, c.shrinkage as clay_shrinkage
+        e.current_state_id, e.current_state_transitioned, c.id as clay_id, c.name as clay_name,
+        c.description as clay_description, c.shrinkage as clay_shrinkage
         FROM works w
         JOIN (
-            SELECT work_id, current_state as current_state_id
+            SELECT work_id, current_state as current_state_id, created_at as current_state_transitioned
             FROM events
             WHERE id IN (
                 SELECT MAX(id)
@@ -73,10 +78,11 @@ pub(crate) async fn work(Path(id): Path<i32>, State(pool): State<SqlitePool>) ->
     handle_optional_result(
         sqlx::query_as::<_, WorkDTO>(
         "SELECT w.id, w.project_id, w.name, w.notes, w.glaze_description, w.created_at,
-        e.current_state_id, c.id as clay_id, c.name as clay_name, c.description as clay_description, c.shrinkage as clay_shrinkage
+        e.current_state_id, e.current_state_transitioned, c.id as clay_id, c.name as clay_name,
+        c.description as clay_description, c.shrinkage as clay_shrinkage
         FROM works w
         JOIN (
-            SELECT work_id, current_state as current_state_id
+            SELECT work_id, current_state as current_state_id, created_at as current_state_transitioned
             FROM events
             WHERE id IN (
                 SELECT MAX(id)
