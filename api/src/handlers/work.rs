@@ -5,11 +5,9 @@ use axum::{
 };
 use chrono::NaiveDateTime;
 use serde::Serialize;
-use sqlx::sqlite::SqlitePool;
 
-use crate::handle_optional_result;
-use crate::internal_error;
-use crate::models::{ApiResource, Clay, CurrentState, Event, State as WorkState, Work};
+use crate::models::{ApiResource, Clay, CurrentState, Event, Images, State as WorkState, Work};
+use crate::{generate_presigned_url, handle_optional_result, internal_error, AppState};
 
 #[derive(sqlx::FromRow, Serialize)]
 struct WorkDTO {
@@ -51,7 +49,7 @@ impl From<WorkDTO> for Work {
         }
     }
 }
-pub(crate) async fn works(State(pool): State<SqlitePool>) -> impl IntoResponse {
+pub(crate) async fn works(State(appstate): State<AppState>) -> impl IntoResponse {
     sqlx::query_as::<_, WorkDTO>(
         "SELECT w.id, w.project_id, w.name, w.notes, w.glaze_description, w.created_at,
         e.current_state_id, e.current_state_transitioned, c.id as clay_id, c.name as clay_name,
@@ -67,14 +65,17 @@ pub(crate) async fn works(State(pool): State<SqlitePool>) -> impl IntoResponse {
             )
         ) e ON w.id = e.work_id
         JOIN clays c ON w.clay_id = c.id")
-        .fetch_all(&pool)
+        .fetch_all(&appstate.pool)
         .await
         .map(|works| works.into_iter().map(Work::from).collect::<Vec<Work>>())
         .map(Json)
         .map_err(internal_error)
 }
 
-pub(crate) async fn work(Path(id): Path<i32>, State(pool): State<SqlitePool>) -> impl IntoResponse {
+pub(crate) async fn work(
+    Path(id): Path<i32>,
+    State(appstate): State<AppState>,
+) -> impl IntoResponse {
     handle_optional_result(
         sqlx::query_as::<_, WorkDTO>(
         "SELECT w.id, w.project_id, w.name, w.notes, w.glaze_description, w.created_at,
@@ -93,7 +94,7 @@ pub(crate) async fn work(Path(id): Path<i32>, State(pool): State<SqlitePool>) ->
         JOIN clays c ON w.clay_id = c.id
         WHERE w.id = ?")
         .bind(id)
-        .fetch_optional(&pool)
+        .fetch_optional(&appstate.pool)
         .await
         .map(|opt_work| opt_work.map(Work::from))
     )
@@ -122,7 +123,7 @@ impl From<EventDTO> for Event {
 
 pub(crate) async fn events(
     Path(id): Path<i32>,
-    State(pool): State<SqlitePool>,
+    State(appstate): State<AppState>,
 ) -> impl IntoResponse {
     sqlx::query_as::<_, EventDTO>(
         "SELECT e.id, e.work_id, s1.id AS previous_state_id,
@@ -133,9 +134,56 @@ pub(crate) async fn events(
         WHERE e.work_id = ?",
     )
     .bind(id)
-    .fetch_all(&pool)
+    .fetch_all(&appstate.pool)
     .await
     .map(|events| events.into_iter().map(Event::from).collect::<Vec<Event>>())
     .map(Json)
     .map_err(internal_error)
+}
+
+#[derive(sqlx::FromRow)]
+struct ImagesDTO {
+    image_key: Option<String>,
+}
+
+pub(crate) async fn images(
+    Path(id): Path<i32>,
+    State(appstate): State<AppState>,
+) -> impl IntoResponse {
+    let result = sqlx::query_as::<_, ImagesDTO>(
+        "SELECT w.image_key
+        FROM works w
+        WHERE w.id = ?",
+    )
+    .bind(id)
+    .fetch_optional(&appstate.pool)
+    .await;
+
+    let result = match result {
+        Err(e) => Err(e),
+        Ok(None) => Ok(None),
+        Ok(Some(images)) => {
+            let url = match images.image_key {
+                None => None,
+                Some(key) => {
+                    let presigned = generate_presigned_url(
+                        &appstate.s3_client,
+                        &appstate.config.s3_config.bucket,
+                        &key,
+                        appstate.config.s3_config.presign_ttl,
+                    )
+                    .await
+                    .unwrap()
+                    .to_string();
+                    Some(presigned)
+                }
+            };
+            Ok(Some(Images {
+                header: url.clone(),
+                thumbnail: url,
+            }))
+        }
+    };
+
+    handle_optional_result(result)
 }

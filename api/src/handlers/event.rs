@@ -5,10 +5,9 @@ use axum::{
 };
 use chrono::NaiveDateTime;
 use serde::Deserialize;
-use sqlx::sqlite::SqlitePool;
 
-use crate::internal_error;
 use crate::models::{ApiResource, Event, State as WorkState};
+use crate::{internal_error, AppState};
 
 #[derive(sqlx::FromRow)]
 struct EventDTO {
@@ -37,7 +36,7 @@ pub struct Limit {
 }
 
 pub(crate) async fn events(
-    State(pool): State<SqlitePool>,
+    State(appstate): State<AppState>,
     Query(limit): Query<Limit>,
 ) -> impl IntoResponse {
     let mut query_string = String::from(
@@ -57,7 +56,7 @@ pub(crate) async fn events(
     let query = sqlx::query_as::<_, EventDTO>(&query_string);
 
     query
-        .fetch_all(&pool)
+        .fetch_all(&appstate.pool)
         .await
         .map(|events| events.into_iter().map(Event::from).collect::<Vec<Event>>())
         .map(Json)

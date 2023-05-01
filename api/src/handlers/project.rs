@@ -5,11 +5,9 @@ use axum::{
 };
 use chrono::NaiveDateTime;
 use serde::Serialize;
-use sqlx::sqlite::SqlitePool;
 
-use crate::handle_optional_result;
-use crate::internal_error;
 use crate::models::{ApiResource, Clay, CurrentState, Project, Work};
+use crate::{handle_optional_result, internal_error, AppState};
 
 #[derive(sqlx::FromRow)]
 struct ProjectDTO {
@@ -30,9 +28,9 @@ impl From<ProjectDTO> for Project {
     }
 }
 
-pub(crate) async fn projects(State(pool): State<SqlitePool>) -> impl IntoResponse {
+pub(crate) async fn projects(State(appstate): State<AppState>) -> impl IntoResponse {
     sqlx::query_as::<_, ProjectDTO>("SELECT id, name, description, created_at FROM projects")
-        .fetch_all(&pool)
+        .fetch_all(&appstate.pool)
         .await
         .map(|projects| {
             projects
@@ -46,14 +44,14 @@ pub(crate) async fn projects(State(pool): State<SqlitePool>) -> impl IntoRespons
 
 pub(crate) async fn project(
     Path(id): Path<i32>,
-    State(pool): State<SqlitePool>,
+    State(appstate): State<AppState>,
 ) -> impl IntoResponse {
     handle_optional_result(
         sqlx::query_as::<_, ProjectDTO>(
             "SELECT id, name, description, created_at FROM projects WHERE id = ?",
         )
         .bind(id)
-        .fetch_optional(&pool)
+        .fetch_optional(&appstate.pool)
         .await
         .map(|opt_project| opt_project.map(Project::from)),
     )
@@ -101,7 +99,7 @@ impl From<WorkDTO> for Work {
 }
 pub(crate) async fn works(
     Path(id): Path<i32>,
-    State(pool): State<SqlitePool>,
+    State(appstate): State<AppState>,
 ) -> impl IntoResponse {
     sqlx::query_as::<_, WorkDTO>(
         "SELECT w.id, w.project_id, w.name, w.notes, w.glaze_description, w.created_at,
@@ -121,7 +119,7 @@ pub(crate) async fn works(
         WHERE w.project_id = ?
         ORDER BY w.id")
         .bind(id)
-        .fetch_all(&pool)
+        .fetch_all(&appstate.pool)
         .await
         .map(|works| works.into_iter().map(Work::from).collect::<Vec<Work>>())
         .map(Json)

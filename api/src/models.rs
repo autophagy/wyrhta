@@ -99,6 +99,12 @@ pub(crate) struct Work {
 }
 
 #[derive(Serialize)]
+pub(crate) struct Images {
+    pub(crate) header: Option<String>,
+    pub(crate) thumbnail: Option<String>,
+}
+
+#[derive(Serialize)]
 pub(crate) struct Event {
     pub(crate) id: i32,
     pub(crate) work: ApiResourceReference,
