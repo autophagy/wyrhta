@@ -22,6 +22,7 @@ struct WorkDTO {
     current_state_id: i32,
     current_state_transitioned: NaiveDateTime,
     glaze_description: Option<String>,
+    image_key: Option<String>,
     created_at: NaiveDateTime,
 }
 
@@ -32,6 +33,11 @@ impl From<WorkDTO> for Work {
             name: value.clay_name,
             description: value.clay_description,
             shrinkage: value.clay_shrinkage,
+        };
+
+        let images = Images {
+            header: None,
+            thumbnail: None,
         };
 
         Work {
@@ -45,6 +51,7 @@ impl From<WorkDTO> for Work {
                 transitioned_at: value.current_state_transitioned,
             },
             glaze_description: value.glaze_description,
+            images,
             created_at: value.created_at,
         }
     }
@@ -72,13 +79,58 @@ pub(crate) async fn works(State(appstate): State<AppState>) -> impl IntoResponse
         .map_err(internal_error)
 }
 
+async fn workdto_to_work(workdto: WorkDTO, appstate: AppState) -> Work {
+    let url = match workdto.image_key {
+        None => None,
+        Some(key) => {
+            let presigned = generate_presigned_url(
+                &appstate.s3_client,
+                &appstate.config.s3_config.bucket,
+                &key,
+                appstate.config.s3_config.presign_ttl,
+            )
+            .await
+            .unwrap()
+            .to_string();
+            Some(presigned)
+        }
+    };
+
+    let images = Images {
+        header: url.clone(),
+        thumbnail: url,
+    };
+
+    let clay = Clay {
+        id: workdto.clay_id,
+        name: workdto.clay_name,
+        description: workdto.clay_description,
+        shrinkage: workdto.clay_shrinkage,
+    };
+
+    Work {
+        id: workdto.id,
+        project: (ApiResource::Project, workdto.project_id).into(),
+        name: workdto.name,
+        notes: workdto.notes,
+        clay,
+        current_state: CurrentState {
+            state: workdto.current_state_id.into(),
+            transitioned_at: workdto.current_state_transitioned,
+        },
+        glaze_description: workdto.glaze_description,
+        images,
+        created_at: workdto.created_at,
+    }
+}
+
 pub(crate) async fn work(
     Path(id): Path<i32>,
     State(appstate): State<AppState>,
 ) -> impl IntoResponse {
-    handle_optional_result(
-        sqlx::query_as::<_, WorkDTO>(
+    let result = sqlx::query_as::<_, WorkDTO>(
         "SELECT w.id, w.project_id, w.name, w.notes, w.glaze_description, w.created_at,
+        w.image_key,
         e.current_state_id, e.current_state_transitioned, c.id as clay_id, c.name as clay_name,
         c.description as clay_description, c.shrinkage as clay_shrinkage
         FROM works w
@@ -95,9 +147,18 @@ pub(crate) async fn work(
         WHERE w.id = ?")
         .bind(id)
         .fetch_optional(&appstate.pool)
-        .await
-        .map(|opt_work| opt_work.map(Work::from))
-    )
+        .await;
+
+    let result = match result {
+        Err(e) => Err(e),
+        Ok(None) => Ok(None),
+        Ok(Some(workdto)) => {
+            let work = workdto_to_work(workdto, appstate).await;
+            Ok(Some(work))
+        }
+    };
+
+    handle_optional_result(result)
 }
 
 #[derive(sqlx::FromRow)]

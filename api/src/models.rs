@@ -95,6 +95,7 @@ pub(crate) struct Work {
     pub(crate) clay: Clay,
     pub(crate) current_state: CurrentState,
     pub(crate) glaze_description: Option<String>,
+    pub(crate) images: Images,
     pub(crate) created_at: NaiveDateTime,
 }
 

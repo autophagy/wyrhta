@@ -1,4 +1,4 @@
-module Api.Event exposing (Event, getEvents, getEventsWithLimit)
+module Api.Event exposing (Event, eventsDecoder, getEvents, getEventsWithLimit)
 
 import Api exposing (ApiResource, apiResourceDecoder)
 import Api.State exposing (State, stateDecoder)

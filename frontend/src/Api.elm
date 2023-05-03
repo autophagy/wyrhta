@@ -1,7 +1,7 @@
-module Api exposing (ApiResource, Data(..), apiResourceDecoder)
+module Api exposing (ApiResource, Data(..), andThenDecode, apiResourceDecoder)
 
 import Http
-import Json.Decode exposing (Decoder, field, int, map2, string)
+import Json.Decode exposing (Decoder, andThen, field, int, map, map2, string)
 
 
 type alias ApiResource =
@@ -21,3 +21,8 @@ type Data value
     = Loading
     | Success value
     | Failure Http.Error
+
+
+andThenDecode : Decoder a -> Decoder (a -> b) -> Decoder b
+andThenDecode value partial =
+    andThen (\p -> map p value) partial

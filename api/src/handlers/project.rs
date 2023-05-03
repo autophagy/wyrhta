@@ -6,7 +6,7 @@ use axum::{
 use chrono::NaiveDateTime;
 use serde::Serialize;
 
-use crate::models::{ApiResource, Clay, CurrentState, Project, Work};
+use crate::models::{ApiResource, Clay, CurrentState, Images, Project, Work};
 use crate::{handle_optional_result, internal_error, AppState};
 
 #[derive(sqlx::FromRow)]
@@ -82,6 +82,11 @@ impl From<WorkDTO> for Work {
             shrinkage: value.clay_shrinkage,
         };
 
+        let images = Images {
+            header: None,
+            thumbnail: None,
+        };
+
         Work {
             id: value.id,
             project: (ApiResource::Project, value.project_id).into(),
@@ -93,6 +98,7 @@ impl From<WorkDTO> for Work {
                 transitioned_at: value.current_state_transitioned,
             },
             glaze_description: value.glaze_description,
+            images,
             created_at: value.created_at,
         }
     }
