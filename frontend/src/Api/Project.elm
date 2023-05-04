@@ -1,4 +1,4 @@
-module Api.Project exposing (Project, getProjects)
+module Api.Project exposing (Project, getProject, getProjects)
 
 import Http
 import Json.Decode exposing (Decoder, field, int, map4, maybe, string)

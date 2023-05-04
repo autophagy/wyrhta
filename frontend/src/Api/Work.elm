@@ -2,11 +2,19 @@ module Api.Work exposing (Work, getWork, getWorkEvents)
 
 import Api exposing (ApiResource, andThenDecode, apiResourceDecoder)
 import Api.Event exposing (Event, eventsDecoder)
-import Api.State exposing (State, stateDecoder)
+import Api.State exposing (State, isTerminalState, stateDecoder)
 import Http
 import Json.Decode exposing (Decoder, field, float, int, map2, map4, maybe, string, succeed)
 import Json.Decode.Extra exposing (datetime)
-import Time exposing (Posix)
+import Time exposing (Posix, posixToMillis)
+
+
+type alias Duration =
+    Int
+
+
+type alias StateDuration =
+    ( Duration, State )
 
 
 type alias CurrentState =

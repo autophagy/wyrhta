@@ -7,7 +7,7 @@ use chrono::NaiveDateTime;
 use serde::Serialize;
 
 use crate::models::{ApiResource, Clay, CurrentState, Event, Images, State as WorkState, Work};
-use crate::{generate_presigned_url, handle_optional_result, internal_error, AppState};
+use crate::{handle_optional_result, internal_error, AppState};
 
 #[derive(sqlx::FromRow, Serialize)]
 struct WorkDTO {
@@ -26,74 +26,10 @@ struct WorkDTO {
     created_at: NaiveDateTime,
 }
 
-impl From<WorkDTO> for Work {
-    fn from(value: WorkDTO) -> Self {
-        let clay = Clay {
-            id: value.clay_id,
-            name: value.clay_name,
-            description: value.clay_description,
-            shrinkage: value.clay_shrinkage,
-        };
-
-        let images = Images {
-            header: None,
-            thumbnail: None,
-        };
-
-        Work {
-            id: value.id,
-            project: (ApiResource::Project, value.project_id).into(),
-            name: value.name,
-            notes: value.notes,
-            clay,
-            current_state: CurrentState {
-                state: value.current_state_id.into(),
-                transitioned_at: value.current_state_transitioned,
-            },
-            glaze_description: value.glaze_description,
-            images,
-            created_at: value.created_at,
-        }
-    }
-}
-pub(crate) async fn works(State(appstate): State<AppState>) -> impl IntoResponse {
-    sqlx::query_as::<_, WorkDTO>(
-        "SELECT w.id, w.project_id, w.name, w.notes, w.glaze_description, w.created_at,
-        e.current_state_id, e.current_state_transitioned, c.id as clay_id, c.name as clay_name,
-        c.description as clay_description, c.shrinkage as clay_shrinkage
-        FROM works w
-        JOIN (
-            SELECT work_id, current_state as current_state_id, created_at as current_state_transitioned
-            FROM events
-            WHERE id IN (
-                SELECT MAX(id)
-                FROM events
-                GROUP BY work_id
-            )
-        ) e ON w.id = e.work_id
-        JOIN clays c ON w.clay_id = c.id")
-        .fetch_all(&appstate.pool)
-        .await
-        .map(|works| works.into_iter().map(Work::from).collect::<Vec<Work>>())
-        .map(Json)
-        .map_err(internal_error)
-}
-
-async fn workdto_to_work(workdto: WorkDTO, appstate: AppState) -> Work {
+fn workdto_to_work(workdto: WorkDTO, appstate: &AppState) -> Work {
     let url = match workdto.image_key {
         None => None,
-        Some(key) => {
-            let presigned = generate_presigned_url(
-                &appstate.s3_client,
-                &appstate.config.s3_config.bucket,
-                &key,
-                appstate.config.s3_config.presign_ttl,
-            )
-            .await
-            .unwrap()
-            .to_string();
-            Some(presigned)
-        }
+        Some(key) => Some(format!("{}/{}", appstate.config.images_url, key)),
     };
 
     let images = Images {
@@ -124,6 +60,30 @@ async fn workdto_to_work(workdto: WorkDTO, appstate: AppState) -> Work {
     }
 }
 
+pub(crate) async fn works(State(appstate): State<AppState>) -> impl IntoResponse {
+    sqlx::query_as::<_, WorkDTO>(
+        "SELECT w.id, w.project_id, w.name, w.notes, w.glaze_description, w.created_at,
+        w.image_key,
+        e.current_state_id, e.current_state_transitioned, c.id as clay_id, c.name as clay_name,
+        c.description as clay_description, c.shrinkage as clay_shrinkage
+        FROM works w
+        JOIN (
+            SELECT work_id, current_state as current_state_id, created_at as current_state_transitioned
+            FROM events
+            WHERE id IN (
+                SELECT MAX(id)
+                FROM events
+                GROUP BY work_id
+            )
+        ) e ON w.id = e.work_id
+        JOIN clays c ON w.clay_id = c.id")
+        .fetch_all(&appstate.pool)
+        .await
+        .map(|works| works.into_iter().map(|w| workdto_to_work(w, &appstate)).collect::<Vec<Work>>())
+        .map(Json)
+        .map_err(internal_error)
+}
+
 pub(crate) async fn work(
     Path(id): Path<i32>,
     State(appstate): State<AppState>,
@@ -147,16 +107,8 @@ pub(crate) async fn work(
         WHERE w.id = ?")
         .bind(id)
         .fetch_optional(&appstate.pool)
-        .await;
-
-    let result = match result {
-        Err(e) => Err(e),
-        Ok(None) => Ok(None),
-        Ok(Some(workdto)) => {
-            let work = workdto_to_work(workdto, appstate).await;
-            Ok(Some(work))
-        }
-    };
+        .await
+        .map(|work_dto| work_dto.map(|w| workdto_to_work(w, &appstate)));
 
     handle_optional_result(result)
 }
@@ -200,51 +152,4 @@ pub(crate) async fn events(
     .map(|events| events.into_iter().map(Event::from).collect::<Vec<Event>>())
     .map(Json)
     .map_err(internal_error)
-}
-
-#[derive(sqlx::FromRow)]
-struct ImagesDTO {
-    image_key: Option<String>,
-}
-
-pub(crate) async fn images(
-    Path(id): Path<i32>,
-    State(appstate): State<AppState>,
-) -> impl IntoResponse {
-    let result = sqlx::query_as::<_, ImagesDTO>(
-        "SELECT w.image_key
-        FROM works w
-        WHERE w.id = ?",
-    )
-    .bind(id)
-    .fetch_optional(&appstate.pool)
-    .await;
-
-    let result = match result {
-        Err(e) => Err(e),
-        Ok(None) => Ok(None),
-        Ok(Some(images)) => {
-            let url = match images.image_key {
-                None => None,
-                Some(key) => {
-                    let presigned = generate_presigned_url(
-                        &appstate.s3_client,
-                        &appstate.config.s3_config.bucket,
-                        &key,
-                        appstate.config.s3_config.presign_ttl,
-                    )
-                    .await
-                    .unwrap()
-                    .to_string();
-                    Some(presigned)
-                }
-            };
-            Ok(Some(Images {
-                header: url.clone(),
-                thumbnail: url,
-            }))
-        }
-    };
-
-    handle_optional_result(result)
 }
