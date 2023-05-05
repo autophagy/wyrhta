@@ -1,4 +1,4 @@
-module Api.Work exposing (Work, getWork, getWorkEvents)
+module Api.Work exposing (Work, getWork, getWorkEvents, workDecoder)
 
 import Api exposing (ApiResource, andThenDecode, apiResourceDecoder)
 import Api.Event exposing (Event, eventsDecoder)

@@ -1,7 +1,8 @@
-module Api.Project exposing (Project, getProject, getProjects)
+module Api.Project exposing (Project, getProject, getProjectWorks, getProjects)
 
+import Api.Work exposing (Work, workDecoder)
 import Http
-import Json.Decode exposing (Decoder, field, int, map4, maybe, string)
+import Json.Decode exposing (Decoder, field, int, list, map4, maybe, string)
 import Json.Decode.Extra exposing (datetime)
 import Time exposing (Posix)
 
@@ -41,4 +42,12 @@ getProject id options =
     Http.get
         { url = "http://localhost:8000/projects/" ++ String.fromInt id
         , expect = Http.expectJson options.onResponse projectDecoder
+        }
+
+
+getProjectWorks : Int -> { onResponse : Result Http.Error (List Work) -> msg } -> Cmd msg
+getProjectWorks id options =
+    Http.get
+        { url = "http://localhost:8000/projects/" ++ String.fromInt id ++ "/works"
+        , expect = Http.expectJson options.onResponse (list workDecoder)
         }
