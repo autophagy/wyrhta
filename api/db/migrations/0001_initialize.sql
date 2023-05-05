@@ -2,7 +2,8 @@ CREATE TABLE projects (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
-    image_key TEXT,
+    header_key TEXT,
+    thumbnail_key TEXT,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now'))
 );
 
@@ -39,7 +40,8 @@ CREATE TABLE works (
     notes TEXT,
     clay_id INTEGER,
     glaze_description TEXT,
-    image_key TEXT,
+    header_key TEXT,
+    thumbnail_key TEXT,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
     FOREIGN KEY (project_id) REFERENCES projects (id),
     FOREIGN KEY (clay_id) REFERENCES clays (id)

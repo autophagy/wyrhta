@@ -38,7 +38,7 @@ async fn main() {
     sqlx::migrate!("db/migrations").run(&pool).await.unwrap();
 
     let config = Config {
-        images_url: "https://images.wyrhta-ceramics.com".to_string(),
+        images_url: "https://img.wyrhtaceramics.com".to_string(),
     };
 
     let state = AppState { config, pool };
