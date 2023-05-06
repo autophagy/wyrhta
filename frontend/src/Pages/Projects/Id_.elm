@@ -9,6 +9,7 @@ import Html.Attributes exposing (class)
 import Http
 import Page exposing (Page)
 import View exposing (View)
+import Views.LoadingPage exposing (PageState(..), viewLoadingPage)
 import Views.Posix exposing (posixToString)
 import Views.String exposing (capitalize)
 import Views.SummaryList exposing (Summary, summaryList)
@@ -32,6 +33,16 @@ type alias Model =
     { projectData : Api.Data Project
     , projectWorksData : Api.Data (List Work)
     }
+
+
+modelToPageState : Model -> PageState
+modelToPageState model =
+    case ( model.projectData, model.projectWorksData ) of
+        ( Api.Success _, Api.Success _ ) ->
+            Loaded
+
+        ( _, _ ) ->
+            Loading
 
 
 init : String -> ( Model, Cmd Msg )
@@ -155,23 +166,17 @@ view model =
                 Api.Success project ->
                     viewProject project
 
-                Api.Loading ->
-                    Html.div [] [ Html.text "..." ]
-
-                Api.Failure _ ->
-                    Html.div [] [ Html.text ":(" ]
+                _ ->
+                    Html.div [] []
 
         worksView =
             case model.projectWorksData of
                 Api.Success works ->
                     viewWorks works
 
-                Api.Loading ->
-                    Html.div [] [ Html.text "..." ]
-
-                Api.Failure _ ->
-                    Html.div [] [ Html.text ":(" ]
+                _ ->
+                    Html.div [] []
     in
     { title = title
-    , body = [ projectView, worksView ]
+    , body = [ viewLoadingPage modelToPageState model [ projectView, worksView ] ]
     }

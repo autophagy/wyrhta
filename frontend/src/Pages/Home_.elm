@@ -12,6 +12,7 @@ import Html.Attributes exposing (class)
 import Http
 import Page exposing (Page)
 import View exposing (View)
+import Views.LoadingPage exposing (PageState(..), viewLoadingPage)
 import Views.Posix exposing (posixToString)
 import Views.SummaryList exposing (Summary, summaryList)
 
@@ -40,6 +41,16 @@ type alias Model =
     { projectData : Api.Data (List Project)
     , eventsData : List EventWithWork
     }
+
+
+modelToPageState : Model -> PageState
+modelToPageState model =
+    case ( model.projectData, model.eventsData ) of
+        ( Api.Success _, _ ) ->
+            Loaded
+
+        ( _, _ ) ->
+            Loading
 
 
 init : ( Model, Cmd Msg )
@@ -154,21 +165,17 @@ view model =
         projectsView =
             case model.projectData of
                 Api.Success projects ->
-                    summaryList <| List.map projectSummary projects
+                    Html.div [ class "container" ] [ Html.h1 [] [ Html.text "Projects" ], summaryList <| List.map projectSummary projects ]
 
-                Api.Loading ->
-                    Html.div [] [ Html.text "..." ]
-
-                Api.Failure _ ->
-                    Html.div [] [ Html.text "Failed to load :(" ]
+                _ ->
+                    Html.div [] []
 
         eventsView =
-            Html.div [] (viewEvents (groupEvents model.eventsData))
+            Html.div [ class "container" ] [ Html.h1 [] [ Html.text "Activity" ], Html.div [] (viewEvents (groupEvents model.eventsData)) ]
     in
     { title = "Wyrhta Ceramics"
     , body =
         [ splashView
-        , Html.div [ class "container" ] [ Html.h1 [] [ Html.text "Activity" ], eventsView ]
-        , Html.div [ class "container" ] [ Html.h1 [] [ Html.text "Projects" ], projectsView ]
+        , viewLoadingPage modelToPageState model [ eventsView, projectsView ]
         ]
     }

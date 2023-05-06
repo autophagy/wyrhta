@@ -14,6 +14,7 @@ import Markdown.Parser as Markdown
 import Markdown.Renderer
 import Page exposing (Page)
 import View exposing (View)
+import Views.LoadingPage exposing (PageState(..), viewLoadingPage)
 import Views.Posix exposing (posixToString)
 import Views.String exposing (capitalize)
 
@@ -37,6 +38,16 @@ type alias Model =
     , projectData : Api.Data Project
     , eventsData : Api.Data (List Event)
     }
+
+
+modelToPageState : Model -> PageState
+modelToPageState model =
+    case ( model.workData, model.projectData, model.eventsData ) of
+        ( Api.Success _, Api.Success _, Api.Success _ ) ->
+            Loaded
+
+        ( _, _, _ ) ->
+            Loading
 
 
 init : String -> ( Model, Cmd Msg )
@@ -219,29 +230,17 @@ view model =
                 ( Api.Success work, Api.Success project ) ->
                     viewWork work project
 
-                ( Api.Loading, _ ) ->
-                    Html.div [] [ Html.text "..." ]
-
-                ( _, Api.Loading ) ->
-                    Html.div [] [ Html.text "..." ]
-
-                ( _, Api.Failure _ ) ->
-                    Html.div [] [ Html.text ":(" ]
-
-                ( Api.Failure _, _ ) ->
-                    Html.div [] [ Html.text ":(" ]
+                ( _, _ ) ->
+                    Html.div [] []
 
         eventsView =
             case model.eventsData of
                 Api.Success events ->
                     Html.div [ class "container" ] (Html.h2 [] [ Html.text "Timeline" ] :: viewEvents (groupEvents events))
 
-                Api.Loading ->
-                    Html.div [] [ Html.text "..." ]
-
-                Api.Failure _ ->
-                    Html.div [] [ Html.text ":(" ]
+                _ ->
+                    Html.div [] []
     in
     { title = title
-    , body = [ workView, eventsView ]
+    , body = [ viewLoadingPage modelToPageState model [ workView, eventsView ] ]
     }
