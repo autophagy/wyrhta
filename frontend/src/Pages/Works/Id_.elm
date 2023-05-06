@@ -1,9 +1,9 @@
 module Pages.Works.Id_ exposing (Model, Msg, page)
 
 import Api
-import Api.Event exposing (Event)
+import Api.Event exposing (Event, compareEvent)
 import Api.Project exposing (Project, getProject)
-import Api.State exposing (State(..))
+import Api.State exposing (State(..), stateToString)
 import Api.Work exposing (Work, getWork, getWorkEvents)
 import Dict exposing (Dict)
 import Dict.Extra exposing (groupBy)
@@ -13,8 +13,9 @@ import Http
 import Markdown.Parser as Markdown
 import Markdown.Renderer
 import Page exposing (Page)
-import Time exposing (Month(..), posixToMillis, toDay, toMonth, toYear, utc)
 import View exposing (View)
+import Views.Posix exposing (posixToString)
+import Views.String exposing (capitalize)
 
 
 page : { id : String } -> Page Model Msg
@@ -110,61 +111,12 @@ subscriptions model =
 
 groupEvents : List Event -> Dict String (List Event)
 groupEvents events =
-    let
-        eventToString =
-            \e -> String.join "." [ String.fromInt (toYear utc e.created_at), toMonthStr (toMonth utc e.created_at), String.pad 2 '0' <| String.fromInt (toDay utc e.created_at) ]
-    in
-    groupBy eventToString events
-
-
-toMonthStr : Month -> String
-toMonthStr month =
-    case month of
-        Jan ->
-            "01"
-
-        Feb ->
-            "02"
-
-        Mar ->
-            "03"
-
-        Apr ->
-            "04"
-
-        May ->
-            "05"
-
-        Jun ->
-            "06"
-
-        Jul ->
-            "07"
-
-        Aug ->
-            "08"
-
-        Sep ->
-            "09"
-
-        Oct ->
-            "10"
-
-        Nov ->
-            "11"
-
-        Dec ->
-            "12"
+    groupBy (posixToString << .created_at) events
 
 
 viewEvent : Event -> Html Msg
 viewEvent event =
     Html.div [] [ Html.text <| "Work was " ++ stateToString event.current_state ++ "." ]
-
-
-compareEvent : Event -> Event -> Order
-compareEvent a b =
-    compare (posixToMillis b.created_at) (posixToMillis a.created_at)
 
 
 viewEvents : Dict String (List Event) -> List (Html Msg)
@@ -235,7 +187,7 @@ optionalDetailRow k maybeV =
 viewWorkDetails : Work -> Html Msg
 viewWorkDetails work =
     Html.div [ class "work-details" ]
-        (detailRow "State" (stringCapitalize <| stateToString work.current_state.state)
+        (detailRow "State" (capitalize <| stateToString work.current_state.state)
             :: detailRow "Clay Body" work.clay.name
             :: optionalDetailRow "Glaze" work.glaze_description
         )
@@ -249,38 +201,6 @@ optionalImage url =
 
         Nothing ->
             []
-
-
-stateToString : State -> String
-stateToString state =
-    case state of
-        Thrown ->
-            "thrown"
-
-        Trimming ->
-            "in trimming"
-
-        AwaitingBisqueFiring ->
-            "awaiting bisque firing"
-
-        AwaitingGlazeFiring ->
-            "awaiting glaze firing"
-
-        Finished ->
-            "finished"
-
-        Recycled ->
-            "recycled"
-
-        _ ->
-            "unknown"
-
-
-stringCapitalize : String -> String
-stringCapitalize word =
-    String.uncons word
-        |> Maybe.map (\( head, tail ) -> String.cons (Char.toUpper head) tail)
-        |> Maybe.withDefault ""
 
 
 view : Model -> View Msg

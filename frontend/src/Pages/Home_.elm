@@ -3,7 +3,7 @@ module Pages.Home_ exposing (Model, Msg, page)
 import Api
 import Api.Event exposing (Event, getEventsWithLimit)
 import Api.Project exposing (Project, getProjects)
-import Api.State as State
+import Api.State exposing (stateToString)
 import Api.Work exposing (Work, getWork)
 import Dict exposing (Dict)
 import Dict.Extra exposing (groupBy)
@@ -11,8 +11,9 @@ import Html exposing (Html)
 import Html.Attributes exposing (class)
 import Http
 import Page exposing (Page)
-import Time exposing (Month(..), Posix, toDay, toMonth, toYear, utc)
 import View exposing (View)
+import Views.Posix exposing (posixToString)
+import Views.SummaryList exposing (Summary, summaryList)
 
 
 page : Page Model Msg
@@ -50,11 +51,7 @@ init =
 
 groupEvents : List EventWithWork -> Dict String (List EventWithWork)
 groupEvents events =
-    let
-        eventToString =
-            \e -> String.join "." [ String.fromInt (toYear utc e.event.created_at), toMonthStr (toMonth utc e.event.created_at), String.pad 2 '0' <| String.fromInt (toDay utc e.event.created_at) ]
-    in
-    groupBy eventToString events
+    groupBy (\e -> posixToString e.event.created_at) events
 
 
 
@@ -110,88 +107,13 @@ subscriptions model =
 -- VIEW
 
 
-viewProject : Project -> Html Msg
-viewProject project =
-    let
-        image_src =
-            case project.images.thumbnail of
-                Nothing ->
-                    "/img/placeholder-thumbnail.jpg"
-
-                Just url ->
-                    url
-    in
-    Html.div [ class "summary-card" ]
-        [ Html.div [ class "thumbnail" ] [ Html.img [ Html.Attributes.src image_src ] [] ]
-        , Html.div [ class "summary" ]
-            [ Html.a [ Html.Attributes.href ("/projects/" ++ String.fromInt project.id) ] [ Html.h3 [] [ Html.text project.name ] ]
-            , Html.div [] [ Html.text <| Maybe.withDefault "" project.description ]
-            ]
-        ]
-
-
-stateStr s =
-    case s of
-        State.Thrown ->
-            "thrown"
-
-        State.Trimming ->
-            "trimming"
-
-        State.Recycled ->
-            "recycled"
-
-        State.AwaitingBisqueFiring ->
-            "awaiting bisque firing"
-
-        State.AwaitingGlazeFiring ->
-            "awaiting glaze firing"
-
-        State.Finished ->
-            "finished"
-
-        State.Unknown ->
-            "unknown"
-
-
-toMonthStr : Month -> String
-toMonthStr month =
-    case month of
-        Jan ->
-            "01"
-
-        Feb ->
-            "02"
-
-        Mar ->
-            "03"
-
-        Apr ->
-            "04"
-
-        May ->
-            "05"
-
-        Jun ->
-            "06"
-
-        Jul ->
-            "07"
-
-        Aug ->
-            "08"
-
-        Sep ->
-            "09"
-
-        Oct ->
-            "10"
-
-        Nov ->
-            "11"
-
-        Dec ->
-            "12"
+projectSummary : Project -> Summary
+projectSummary project =
+    { thumbnail = project.images.thumbnail
+    , link = "/project/" ++ String.fromInt project.id
+    , title = project.name
+    , summary = Maybe.withDefault "" project.description
+    }
 
 
 viewEvent : EventWithWork -> Html Msg
@@ -206,10 +128,10 @@ viewEvent e =
         eventStr =
             case event.previous_state of
                 Just state ->
-                    " transitioned from " ++ stateStr state ++ " to " ++ stateStr event.current_state ++ "."
+                    " transitioned from " ++ stateToString state ++ " to " ++ stateToString event.current_state ++ "."
 
                 Nothing ->
-                    " was " ++ stateStr event.current_state ++ "."
+                    " was " ++ stateToString event.current_state ++ "."
     in
     Html.div [] [ Html.a [ Html.Attributes.href ("/works/" ++ String.fromInt work.id) ] [ Html.text work.name ], Html.text eventStr ]
 
@@ -232,7 +154,7 @@ view model =
         projectsView =
             case model.projectData of
                 Api.Success projects ->
-                    Html.div [ class "summary-list" ] <| List.map viewProject projects
+                    summaryList <| List.map projectSummary projects
 
                 Api.Loading ->
                     Html.div [] [ Html.text "..." ]

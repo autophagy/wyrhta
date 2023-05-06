@@ -1,4 +1,4 @@
-module Api.State exposing (State(..), isTerminalState, stateDecoder)
+module Api.State exposing (State(..), isTerminalState, stateDecoder, stateToString)
 
 import Json.Decode exposing (Decoder, andThen, string, succeed)
 
@@ -27,6 +27,31 @@ isTerminalState state =
 
         _ ->
             False
+
+
+stateToString : State -> String
+stateToString s =
+    case s of
+        Thrown ->
+            "thrown"
+
+        Trimming ->
+            "trimming"
+
+        Recycled ->
+            "recycled"
+
+        AwaitingBisqueFiring ->
+            "awaiting bisque firing"
+
+        AwaitingGlazeFiring ->
+            "awaiting glaze firing"
+
+        Finished ->
+            "finished"
+
+        Unknown ->
+            "unknown"
 
 
 stateDecoder : Decoder State

@@ -8,8 +8,10 @@ import Html exposing (Html)
 import Html.Attributes exposing (class)
 import Http
 import Page exposing (Page)
-import Time exposing (Month(..), toDay, toMonth, toYear, utc)
 import View exposing (View)
+import Views.Posix exposing (posixToString)
+import Views.String exposing (capitalize)
+import Views.SummaryList exposing (Summary, summaryList)
 
 
 page : { id : String } -> Page Model Msg
@@ -88,46 +90,6 @@ subscriptions model =
 -- VIEW
 
 
-toMonthStr : Month -> String
-toMonthStr month =
-    case month of
-        Jan ->
-            "01"
-
-        Feb ->
-            "02"
-
-        Mar ->
-            "03"
-
-        Apr ->
-            "04"
-
-        May ->
-            "05"
-
-        Jun ->
-            "06"
-
-        Jul ->
-            "07"
-
-        Aug ->
-            "08"
-
-        Sep ->
-            "09"
-
-        Oct ->
-            "10"
-
-        Nov ->
-            "11"
-
-        Dec ->
-            "12"
-
-
 viewProject : Project -> Html Msg
 viewProject project =
     Html.div []
@@ -163,42 +125,18 @@ stateToString state =
             "unknown"
 
 
-stringCapitalize : String -> String
-stringCapitalize word =
-    String.uncons word
-        |> Maybe.map (\( head, tail ) -> String.cons (Char.toUpper head) tail)
-        |> Maybe.withDefault ""
-
-
-viewWork : Work -> Html Msg
-viewWork work =
-    let
-        transitioned_at =
-            work.current_state.transitioned_at
-
-        updated_date =
-            String.join "." [ String.fromInt (toYear utc transitioned_at), toMonthStr (toMonth utc transitioned_at), String.pad 2 '0' <| String.fromInt (toDay utc transitioned_at) ]
-
-        image_src =
-            case work.images.thumbnail of
-                Nothing ->
-                    "/img/placeholder-thumbnail.jpg"
-
-                Just url ->
-                    url
-    in
-    Html.div [ class "summary-card" ]
-        [ Html.div [ class "thumbnail" ] [ Html.img [ Html.Attributes.src image_src ] [] ]
-        , Html.div [ class "summary" ]
-            [ Html.a [ Html.Attributes.href ("/works/" ++ String.fromInt work.id) ] [ Html.h3 [] [ Html.text work.name ] ]
-            , Html.div [] [ Html.text (stringCapitalize <| stateToString work.current_state.state), Html.text " since ", Html.text updated_date ]
-            ]
-        ]
+workSummary : Work -> Summary
+workSummary work =
+    { thumbnail = work.images.thumbnail
+    , link = "/works/" ++ String.fromInt work.id
+    , title = work.name
+    , summary = (capitalize <| stateToString work.current_state.state) ++ " since " ++ posixToString work.current_state.transitioned_at
+    }
 
 
 viewWorks : List Work -> Html Msg
 viewWorks works =
-    Html.div [ class "summary-list container" ] <| List.map viewWork works
+    Html.div [ class "container" ] [ summaryList <| List.map workSummary works ]
 
 
 view : Model -> View Msg
