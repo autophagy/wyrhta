@@ -10,6 +10,8 @@ import Dict.Extra exposing (groupBy)
 import Html exposing (Html)
 import Html.Attributes exposing (class)
 import Http
+import Markdown.Parser as Markdown
+import Markdown.Renderer
 import Page exposing (Page)
 import Time exposing (Month(..), posixToMillis, toDay, toMonth, toYear, utc)
 import View exposing (View)
@@ -174,15 +176,41 @@ viewEvents events =
     Dict.foldl viewEventGroup [] events
 
 
+viewNotes : String -> Html Msg
+viewNotes notes =
+    Html.div []
+        [ case
+            notes
+                |> Markdown.parse
+                |> Result.mapError (\d -> d |> List.map Markdown.deadEndToString |> String.join "\n")
+                |> Result.andThen (\ast -> Markdown.Renderer.render Markdown.Renderer.defaultHtmlRenderer ast)
+          of
+            Ok rendered ->
+                Html.div [] rendered
+
+            Err error ->
+                Html.text error
+        ]
+
+
 viewWork : Work -> Project -> Html Msg
 viewWork work project =
+    let
+        notesSection =
+            case work.notes of
+                Nothing ->
+                    []
+
+                Just notes ->
+                    [ Html.div [ class "notes" ] [ Html.h2 [] [ Html.text "Notes" ], Html.div [] [ viewNotes notes ] ] ]
+    in
     Html.div []
         [ Html.div [ class "container work-name" ]
             [ Html.h1 [] [ Html.text work.name ]
             , Html.div [] [ Html.text "Work in ", Html.a [ Html.Attributes.href ("/projects/" ++ String.fromInt project.id) ] [ Html.text project.name ], Html.text "." ]
             ]
         , Html.div [ class "container header" ] <| optionalImage work.images.header
-        , Html.div [ class "container" ] (viewWorkDetails work :: optionalSection "notes" "Notes" work.notes)
+        , Html.div [ class "container" ] (viewWorkDetails work :: notesSection)
         ]
 
 
@@ -211,16 +239,6 @@ viewWorkDetails work =
             :: detailRow "Clay Body" work.clay.name
             :: optionalDetailRow "Glaze" work.glaze_description
         )
-
-
-optionalSection : String -> String -> Maybe String -> List (Html Msg)
-optionalSection c k maybeV =
-    case maybeV of
-        Just v ->
-            [ Html.div [ class c ] [ Html.h2 [] [ Html.text k ], Html.div [] [ Html.text v ] ] ]
-
-        Nothing ->
-            []
 
 
 optionalImage : Maybe String -> List (Html Msg)

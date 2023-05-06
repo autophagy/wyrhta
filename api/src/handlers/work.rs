@@ -5,6 +5,7 @@ use axum::{
 };
 use chrono::NaiveDateTime;
 use serde::Serialize;
+use serde_json::from_str;
 
 use crate::models::{ApiResource, Clay, CurrentState, Event, Images, State as WorkState, Work};
 use crate::{handle_optional_result, internal_error, AppState};
@@ -60,11 +61,16 @@ pub(crate) fn workdto_to_work(workdto: WorkDTO, appstate: &AppState) -> Work {
         shrinkage: workdto.clay_shrinkage,
     };
 
+    let notes = match workdto.notes {
+        None => None,
+        Some(notes) => Some(from_str(&format!("\"{}\"", notes)).unwrap()),
+    };
+
     Work {
         id: workdto.id,
         project: (ApiResource::Project, workdto.project_id).into(),
         name: workdto.name,
-        notes: workdto.notes,
+        notes,
         clay,
         current_state: CurrentState {
             state: workdto.current_state_id.into(),
