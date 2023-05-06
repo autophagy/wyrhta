@@ -9,6 +9,22 @@ use serde::Serialize;
 use crate::models::{ApiResource, Clay, CurrentState, Event, Images, State as WorkState, Work};
 use crate::{handle_optional_result, internal_error, AppState};
 
+pub(crate) static WORK_DTO_QUERY: &str = "
+SELECT w.id, w.project_id, w.name, w.notes, w.glaze_description, w.created_at, w.header_key, w.thumbnail_key,
+e.current_state_id, e.current_state_transitioned,
+c.id as clay_id, c.name as clay_name, c.description as clay_description, c.shrinkage as clay_shrinkage
+FROM works w
+JOIN (
+    SELECT work_id, current_state as current_state_id, created_at as current_state_transitioned
+    FROM events
+    WHERE id IN (
+        SELECT MAX(id)
+        FROM events
+        GROUP BY work_id
+    )
+) e ON w.id = e.work_id
+JOIN clays c ON w.clay_id = c.id";
+
 #[derive(sqlx::FromRow, Serialize)]
 pub(crate) struct WorkDTO {
     id: i32,
@@ -29,8 +45,12 @@ pub(crate) struct WorkDTO {
 
 pub(crate) fn workdto_to_work(workdto: WorkDTO, appstate: &AppState) -> Work {
     let images = Images {
-        header: workdto.header_key.map(|k| format!("{}/{}", appstate.config.images_url, k)),
-        thumbnail: workdto.thumbnail_key.map(|k| format!("{}/{}", appstate.config.images_url, k)),
+        header: workdto
+            .header_key
+            .map(|k| format!("{}/{}", appstate.config.images_url, k)),
+        thumbnail: workdto
+            .thumbnail_key
+            .map(|k| format!("{}/{}", appstate.config.images_url, k)),
     };
 
     let clay = Clay {
@@ -57,25 +77,15 @@ pub(crate) fn workdto_to_work(workdto: WorkDTO, appstate: &AppState) -> Work {
 }
 
 pub(crate) async fn works(State(appstate): State<AppState>) -> impl IntoResponse {
-    sqlx::query_as::<_, WorkDTO>(
-        "SELECT w.id, w.project_id, w.name, w.notes, w.glaze_description, w.created_at,
-        w.header_key, w.thumbnail_key,
-        e.current_state_id, e.current_state_transitioned, c.id as clay_id, c.name as clay_name,
-        c.description as clay_description, c.shrinkage as clay_shrinkage
-        FROM works w
-        JOIN (
-            SELECT work_id, current_state as current_state_id, created_at as current_state_transitioned
-            FROM events
-            WHERE id IN (
-                SELECT MAX(id)
-                FROM events
-                GROUP BY work_id
-            )
-        ) e ON w.id = e.work_id
-        JOIN clays c ON w.clay_id = c.id")
+    sqlx::query_as::<_, WorkDTO>(WORK_DTO_QUERY)
         .fetch_all(&appstate.pool)
         .await
-        .map(|works| works.into_iter().map(|w| workdto_to_work(w, &appstate)).collect::<Vec<Work>>())
+        .map(|works| {
+            works
+                .into_iter()
+                .map(|w| workdto_to_work(w, &appstate))
+                .collect::<Vec<Work>>()
+        })
         .map(Json)
         .map_err(internal_error)
 }
@@ -84,23 +94,7 @@ pub(crate) async fn work(
     Path(id): Path<i32>,
     State(appstate): State<AppState>,
 ) -> impl IntoResponse {
-    let result = sqlx::query_as::<_, WorkDTO>(
-        "SELECT w.id, w.project_id, w.name, w.notes, w.glaze_description, w.created_at,
-        w.header_key, w.thumbnail_key,
-        e.current_state_id, e.current_state_transitioned, c.id as clay_id, c.name as clay_name,
-        c.description as clay_description, c.shrinkage as clay_shrinkage
-        FROM works w
-        JOIN (
-            SELECT work_id, current_state as current_state_id, created_at as current_state_transitioned
-            FROM events
-            WHERE id IN (
-                SELECT MAX(id)
-                FROM events
-                GROUP BY work_id
-            )
-        ) e ON w.id = e.work_id
-        JOIN clays c ON w.clay_id = c.id
-        WHERE w.id = ?")
+    let result = sqlx::query_as::<_, WorkDTO>(&format!("{} {}", WORK_DTO_QUERY, "WHERE w.id = ?"))
         .bind(id)
         .fetch_optional(&appstate.pool)
         .await
