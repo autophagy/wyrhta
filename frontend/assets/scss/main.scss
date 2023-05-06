@@ -116,9 +116,10 @@ h1 {
 
 .summary-list {
   display: grid;
-  gap: 1em;
-  grid-template-columns: repeat(3, 1fr);
+  grid-gap: 2em;
+  grid-template-columns: repeat(auto-fit, 285px);
   grid-auto-rows: 1fr;
+  justify-content: space-between;
 
   .summary-card {
     width: 285px;
