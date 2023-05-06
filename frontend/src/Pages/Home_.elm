@@ -110,7 +110,7 @@ subscriptions model =
 projectSummary : Project -> Summary
 projectSummary project =
     { thumbnail = project.images.thumbnail
-    , link = "/project/" ++ String.fromInt project.id
+    , link = "/projects/" ++ String.fromInt project.id
     , title = project.name
     , summary = Maybe.withDefault "" project.description
     }
