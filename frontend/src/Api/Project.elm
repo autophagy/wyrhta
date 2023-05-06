@@ -2,15 +2,22 @@ module Api.Project exposing (Project, getProject, getProjectWorks, getProjects)
 
 import Api.Work exposing (Work, workDecoder)
 import Http
-import Json.Decode exposing (Decoder, field, int, list, map4, maybe, string)
+import Json.Decode exposing (Decoder, field, int, list, map2, map5, maybe, string)
 import Json.Decode.Extra exposing (datetime)
 import Time exposing (Posix)
+
+
+type alias Images =
+    { header : Maybe String
+    , thumbnail : Maybe String
+    }
 
 
 type alias Project =
     { id : Int
     , name : String
     , description : Maybe String
+    , images : Images
     , created_at : Posix
     }
 
@@ -22,11 +29,19 @@ projectsDecoder =
 
 projectDecoder : Decoder Project
 projectDecoder =
-    map4 Project
+    map5 Project
         (field "id" int)
         (field "name" string)
         (field "description" (maybe string))
+        (field "images" imagesDecoder)
         (field "created_at" datetime)
+
+
+imagesDecoder : Decoder Images
+imagesDecoder =
+    map2 Images
+        (field "header" (maybe string))
+        (field "thumbnail" (maybe string))
 
 
 getProjects : { onResponse : Result Http.Error (List Project) -> msg } -> Cmd msg

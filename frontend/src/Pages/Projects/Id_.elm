@@ -178,16 +178,27 @@ viewWork work =
 
         updated_date =
             String.join "." [ String.fromInt (toYear utc transitioned_at), toMonthStr (toMonth utc transitioned_at), String.pad 2 '0' <| String.fromInt (toDay utc transitioned_at) ]
+
+        image_src =
+            case work.images.thumbnail of
+                Nothing ->
+                    "/img/placeholder-thumbnail.jpg"
+
+                Just url ->
+                    url
     in
-    Html.div [ class "work" ]
-        [ Html.a [ Html.Attributes.href ("/works/" ++ String.fromInt work.id) ] [ Html.h3 [] [ Html.text work.name ] ]
-        , Html.p [] [ Html.text "State: ", Html.text <| stringCapitalize <| stateToString work.current_state.state, Html.text ". Last updated: ", Html.text updated_date ]
+    Html.div [ class "summary-card" ]
+        [ Html.div [ class "thumbnail" ] [ Html.img [ Html.Attributes.src image_src ] [] ]
+        , Html.div [ class "summary" ]
+            [ Html.a [ Html.Attributes.href ("/works/" ++ String.fromInt work.id) ] [ Html.h3 [] [ Html.text work.name ] ]
+            , Html.div [] [ Html.text (stringCapitalize <| stateToString work.current_state.state), Html.text " since ", Html.text updated_date ]
+            ]
         ]
 
 
 viewWorks : List Work -> Html Msg
 viewWorks works =
-    Html.div [ class "works container" ] <| List.map viewWork works
+    Html.div [ class "summary-list container" ] <| List.map viewWork works
 
 
 view : Model -> View Msg

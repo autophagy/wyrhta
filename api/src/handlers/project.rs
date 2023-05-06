@@ -6,11 +6,11 @@ use axum::{
 use chrono::NaiveDateTime;
 
 use crate::handlers::work::{workdto_to_work, WorkDTO, WORK_DTO_QUERY};
-use crate::models::{Project, Work};
+use crate::models::{Images, Project, Work};
 use crate::{handle_optional_result, internal_error, AppState};
 
 static PROJECT_DTO_QUERY: &str = "
-SELECT id, name, description, created_at
+SELECT id, name, description, created_at, header_key, thumbnail_key
 FROM projects
 ";
 
@@ -19,17 +19,27 @@ struct ProjectDTO {
     id: i32,
     name: String,
     description: Option<String>,
+    header_key: Option<String>,
+    thumbnail_key: Option<String>,
     created_at: NaiveDateTime,
 }
 
-impl From<ProjectDTO> for Project {
-    fn from(value: ProjectDTO) -> Self {
-        Project {
-            id: value.id,
-            name: value.name,
-            description: value.description,
-            created_at: value.created_at,
-        }
+fn projectdto_to_project(projectdto: ProjectDTO, appstate: &AppState) -> Project {
+    let images = Images {
+        header: projectdto
+            .header_key
+            .map(|k| format!("{}/{}", appstate.config.images_url, k)),
+        thumbnail: projectdto
+            .thumbnail_key
+            .map(|k| format!("{}/{}", appstate.config.images_url, k)),
+    };
+
+    Project {
+        id: projectdto.id,
+        name: projectdto.name,
+        description: projectdto.description,
+        images,
+        created_at: projectdto.created_at,
     }
 }
 
@@ -40,7 +50,7 @@ pub(crate) async fn projects(State(appstate): State<AppState>) -> impl IntoRespo
         .map(|projects| {
             projects
                 .into_iter()
-                .map(Project::from)
+                .map(|p| projectdto_to_project(p, &appstate))
                 .collect::<Vec<Project>>()
         })
         .map(Json)
@@ -56,7 +66,7 @@ pub(crate) async fn project(
             .bind(id)
             .fetch_optional(&appstate.pool)
             .await
-            .map(|opt_project| opt_project.map(Project::from)),
+            .map(|opt_project| opt_project.map(|p| projectdto_to_project(p, &appstate))),
     )
 }
 

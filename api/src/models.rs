@@ -54,6 +54,7 @@ pub(crate) struct Project {
     pub(crate) id: i32,
     pub(crate) name: String,
     pub(crate) description: Option<String>,
+    pub(crate) images: Images,
     pub(crate) created_at: NaiveDateTime,
 }
 

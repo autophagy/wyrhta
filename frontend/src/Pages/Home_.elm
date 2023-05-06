@@ -112,10 +112,21 @@ subscriptions model =
 
 viewProject : Project -> Html Msg
 viewProject project =
-    Html.div
-        [ class "project" ]
-        [ Html.div [ class "project-name" ] [ Html.a [ Html.Attributes.href ("/projects/" ++ String.fromInt project.id) ] [ Html.text project.name ] ]
-        , Html.div [ class "project-description" ] [ Html.text (Maybe.withDefault "" project.description) ]
+    let
+        image_src =
+            case project.images.thumbnail of
+                Nothing ->
+                    "/img/placeholder-thumbnail.jpg"
+
+                Just url ->
+                    url
+    in
+    Html.div [ class "summary-card" ]
+        [ Html.div [ class "thumbnail" ] [ Html.img [ Html.Attributes.src image_src ] [] ]
+        , Html.div [ class "summary" ]
+            [ Html.a [ Html.Attributes.href ("/projects/" ++ String.fromInt project.id) ] [ Html.h3 [] [ Html.text project.name ] ]
+            , Html.div [] [ Html.text <| Maybe.withDefault "" project.description ]
+            ]
         ]
 
 
@@ -221,7 +232,7 @@ view model =
         projectsView =
             case model.projectData of
                 Api.Success projects ->
-                    Html.div [] (List.map viewProject projects)
+                    Html.div [ class "summary-list" ] <| List.map viewProject projects
 
                 Api.Loading ->
                     Html.div [] [ Html.text "..." ]
