@@ -117,7 +117,8 @@ viewProjectDetails model =
                     "..."
     in
     Html.div [ A.class "container" ]
-        [ Html.h2 [] [ Html.text "Name" ]
+        [ Html.h1 [] [ Html.text <| "Editing Project [" ++ String.fromInt model.id ++ "]" ]
+        , Html.h2 [] [ Html.text "Name" ]
         , Html.input [ A.type_ "text", A.name "project-name", A.value model.projectName, E.onInput ProjectNameUpdated ] []
         , Html.h2 [] [ Html.text "Description" ]
         , Html.textarea [ A.name "project-description", A.value <| Maybe.withDefault "" model.projectDescription, E.onInput ProjectDescriptionUpdated ] []
@@ -127,6 +128,6 @@ viewProjectDetails model =
 
 view : Model -> View Msg
 view model =
-    { title = "Pages.Projects.Id_.Edit"
+    { title = "Editing Project [" ++ String.fromInt model.id ++ "]"
     , body = [ viewProjectDetails model ]
     }
