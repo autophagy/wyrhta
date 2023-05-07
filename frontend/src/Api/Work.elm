@@ -1,10 +1,10 @@
-module Api.Work exposing (Work, getWork, getWorkEvents, workDecoder)
+module Api.Work exposing (Work, getWork, getWorkEvents, getWorks, workDecoder)
 
 import Api exposing (ApiResource, andThenDecode, apiResourceDecoder)
 import Api.Event exposing (Event, eventsDecoder)
 import Api.State exposing (State, isTerminalState, stateDecoder)
 import Http
-import Json.Decode exposing (Decoder, field, float, int, map2, map4, maybe, string, succeed)
+import Json.Decode exposing (Decoder, field, float, int, list, map2, map4, maybe, string, succeed)
 import Json.Decode.Extra exposing (datetime)
 import Time exposing (Posix, posixToMillis)
 
@@ -85,6 +85,14 @@ workDecoder =
         |> andThenDecode (field "glaze_description" (maybe string))
         |> andThenDecode (field "images" imagesDecoder)
         |> andThenDecode (field "created_at" datetime)
+
+
+getWorks : { onResponse : Result Http.Error (List Work) -> msg } -> Cmd msg
+getWorks options =
+    Http.get
+        { url = "http://localhost:8000/works"
+        , expect = Http.expectJson options.onResponse (list workDecoder)
+        }
 
 
 getWork : Int -> { onResponse : Result Http.Error Work -> msg } -> Cmd msg
