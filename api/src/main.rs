@@ -2,6 +2,8 @@ mod handlers;
 mod models;
 
 use axum::{http::StatusCode, response::IntoResponse, routing::get, Json, Router};
+use tower_http::cors::{CorsLayer, Any};
+use axum::http::Method;
 use serde::Serialize;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePool, SqlitePoolOptions};
 use std::error::Error;
@@ -43,6 +45,10 @@ async fn main() {
 
     let state = AppState { config, pool };
 
+    let cors = CorsLayer::new()
+        .allow_methods([Method::GET])
+        .allow_origin(Any);
+
     let app = Router::new()
         .route("/projects", get(projects))
         .route("/projects/:id", get(project))
@@ -51,6 +57,7 @@ async fn main() {
         .route("/works", get(works))
         .route("/works/:id", get(work))
         .route("/works/:id/events", get(work_events))
+        .layer(cors)
         .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
