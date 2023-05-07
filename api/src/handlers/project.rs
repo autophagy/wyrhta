@@ -1,12 +1,12 @@
 use axum::response::IntoResponse;
 use axum::{
-    extract::{Path, State},
+    extract::{Json as ExtractJson, Path, State},
     Json,
 };
 use chrono::NaiveDateTime;
 
 use crate::handlers::work::{workdto_to_work, WorkDTO, WORK_DTO_QUERY};
-use crate::models::{Images, Project, Work};
+use crate::models::{Images, Project, PutProject, Work};
 use crate::{handle_optional_result, internal_error, AppState};
 
 static PROJECT_DTO_QUERY: &str = "
@@ -68,6 +68,21 @@ pub(crate) async fn project(
             .await
             .map(|opt_project| opt_project.map(|p| projectdto_to_project(p, &appstate))),
     )
+}
+
+pub(crate) async fn put_project(
+    Path(id): Path<i32>,
+    State(appstate): State<AppState>,
+    ExtractJson(data): ExtractJson<PutProject>,
+) -> impl IntoResponse {
+    sqlx::query("UPDATE projects SET name=?, description=? WHERE id=?")
+        .bind(data.name)
+        .bind(data.description)
+        .bind(id)
+        .execute(&appstate.pool)
+        .await
+        .map(|_| ())
+        .map_err(internal_error)
 }
 
 pub(crate) async fn works(

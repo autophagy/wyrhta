@@ -1,10 +1,16 @@
-module Api.Project exposing (Project, getProject, getProjectWorks, getProjects)
+module Api.Project exposing (..)
 
 import Api.Work exposing (Work, workDecoder)
 import Http
 import Json.Decode exposing (Decoder, field, int, list, map2, map5, maybe, string)
 import Json.Decode.Extra exposing (datetime)
+import Json.Encode as Encode
+import Json.Encode.Extra as Encode
 import Time exposing (Posix)
+
+
+
+-- GET
 
 
 type alias Images =
@@ -65,4 +71,35 @@ getProjectWorks id options =
     Http.get
         { url = "http://localhost:8000/projects/" ++ String.fromInt id ++ "/works"
         , expect = Http.expectJson options.onResponse (list workDecoder)
+        }
+
+
+
+-- PUT
+
+
+type alias UpdateProject =
+    { name : String
+    , description : Maybe String
+    }
+
+
+projectEncoder : UpdateProject -> Encode.Value
+projectEncoder project =
+    Encode.object
+        [ ( "name", Encode.string project.name )
+        , ( "description", Encode.maybe Encode.string project.description )
+        ]
+
+
+putProject : Int -> UpdateProject -> { onResponse : Result Http.Error () -> msg } -> Cmd msg
+putProject id project options =
+    Http.request
+        { method = "PUT"
+        , headers = []
+        , url = " http://localhost:8000/projects/" ++ String.fromInt id
+        , body = Http.jsonBody <| projectEncoder project
+        , expect = Http.expectWhatever options.onResponse
+        , timeout = Nothing
+        , tracker = Nothing
         }

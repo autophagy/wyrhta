@@ -1,16 +1,16 @@
 mod handlers;
 mod models;
 
-use axum::{http::StatusCode, response::IntoResponse, routing::get, Json, Router};
-use tower_http::cors::{CorsLayer, Any};
 use axum::http::Method;
+use axum::{http::StatusCode, response::IntoResponse, routing::get, Json, Router};
 use serde::Serialize;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePool, SqlitePoolOptions};
 use std::error::Error;
 use std::net::SocketAddr;
+use tower_http::cors::{Any, CorsLayer};
 
 use handlers::event::events;
-use handlers::project::{project, projects, works as project_works};
+use handlers::project::{project, projects, put_project, works as project_works};
 use handlers::work::{events as work_events, work, works};
 
 #[derive(Clone)]
@@ -51,7 +51,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/projects", get(projects))
-        .route("/projects/:id", get(project))
+        .route("/projects/:id", get(project).put(put_project))
         .route("/projects/:id/works", get(project_works))
         .route("/events", get(events))
         .route("/works", get(works))

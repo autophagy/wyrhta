@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
 pub(crate) struct Clay {
@@ -56,6 +56,12 @@ pub(crate) struct Project {
     pub(crate) description: Option<String>,
     pub(crate) images: Images,
     pub(crate) created_at: NaiveDateTime,
+}
+
+#[derive(Deserialize, Debug)]
+pub(crate) struct PutProject {
+    pub(crate) name: String,
+    pub(crate) description: Option<String>,
 }
 
 #[derive(Serialize)]
