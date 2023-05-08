@@ -62,6 +62,7 @@ pub(crate) struct Project {
 pub(crate) struct PutProject {
     pub(crate) name: String,
     pub(crate) description: Option<String>,
+    pub(crate) thumbnail: Option<String>,
 }
 
 #[derive(Serialize)]

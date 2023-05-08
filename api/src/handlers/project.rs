@@ -75,9 +75,16 @@ pub(crate) async fn put_project(
     State(appstate): State<AppState>,
     ExtractJson(data): ExtractJson<PutProject>,
 ) -> impl IntoResponse {
-    sqlx::query("UPDATE projects SET name=?, description=? WHERE id=?")
+    let thumbnail_key = data.thumbnail.as_ref().map(|key| {
+        key.strip_prefix(&format!("{}/", &appstate.config.images_url))
+            .unwrap_or(key)
+            .to_owned()
+    });
+
+    sqlx::query("UPDATE projects SET name=?, description=?, thumbnail_key=? WHERE id=?")
         .bind(data.name)
         .bind(data.description)
+        .bind(thumbnail_key)
         .bind(id)
         .execute(&appstate.pool)
         .await

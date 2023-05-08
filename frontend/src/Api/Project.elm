@@ -81,6 +81,7 @@ getProjectWorks id options =
 type alias UpdateProject =
     { name : String
     , description : Maybe String
+    , thumbnail : Maybe String
     }
 
 
@@ -89,6 +90,7 @@ projectEncoder project =
     Encode.object
         [ ( "name", Encode.string project.name )
         , ( "description", Encode.maybe Encode.string project.description )
+        , ( "thumbnail", Encode.maybe Encode.string project.thumbnail )
         ]
 
 
