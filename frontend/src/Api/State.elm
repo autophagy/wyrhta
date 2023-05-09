@@ -1,6 +1,8 @@
-module Api.State exposing (State(..), isTerminalState, stateDecoder, stateToString)
+module Api.State exposing (State(..), enumState, isTerminalState, putState, stateDecoder, stateToString)
 
+import Http
 import Json.Decode exposing (Decoder, andThen, string, succeed)
+import Json.Encode as Encode
 
 
 type State
@@ -11,6 +13,11 @@ type State
     | Finished
     | Recycled
     | Unknown
+
+
+enumState : List State
+enumState =
+    [ Thrown, Trimming, AwaitingBisqueFiring, AwaitingGlazeFiring, Finished, Recycled ]
 
 
 isTerminalState : State -> Bool
@@ -81,3 +88,45 @@ stateDecoder =
                     _ ->
                         succeed Unknown
             )
+
+
+stateEncoder : State -> Encode.Value
+stateEncoder s =
+    let
+        str =
+            case s of
+                Thrown ->
+                    "Thrown"
+
+                Trimming ->
+                    "Trimming"
+
+                AwaitingBisqueFiring ->
+                    "AwaitingBisqueFiring"
+
+                AwaitingGlazeFiring ->
+                    "AwaitingGlazeFiring"
+
+                Finished ->
+                    "Finished"
+
+                Recycled ->
+                    "Recycled"
+
+                Unknown ->
+                    "Unknown"
+    in
+    Encode.string str
+
+
+putState : Int -> State -> { onResponse : Result Http.Error () -> msg } -> Cmd msg
+putState id state options =
+    Http.request
+        { method = "PUT"
+        , headers = []
+        , url = " http://localhost:8000/works/" ++ String.fromInt id ++ "/state"
+        , body = Http.jsonBody <| stateEncoder state
+        , expect = Http.expectWhatever options.onResponse
+        , timeout = Nothing
+        , tracker = Nothing
+        }
