@@ -8,6 +8,7 @@ use serde::Serialize;
 
 use crate::models::{
     ApiResource, Clay, CurrentState, Event, Images, PutWork, State as WorkState, Work,
+    is_valid_transition
 };
 use crate::{handle_optional_result, internal_error, AppState};
 
@@ -105,7 +106,7 @@ pub(crate) async fn work(
     handle_optional_result(result)
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(sqlx::FromRow, Debug)]
 struct EventDTO {
     id: i32,
     work_id: i32,
@@ -184,3 +185,43 @@ pub(crate) async fn put_work(
     .map(|_| ())
     .map_err(internal_error)
 }
+
+pub(crate) async fn put_state(
+    Path(id): Path<i32>,
+    State(appstate): State<AppState>,
+    ExtractJson(data): ExtractJson<WorkState>,
+) -> impl IntoResponse {
+    let latest_event = sqlx::query_as::<_, EventDTO>(
+        "SELECT id, work_id, previous_state as previous_state_id, current_state as current_state_id, created_at
+        FROM events
+        WHERE work_id = ?
+        ORDER BY created_at DESC
+        LIMIT 1"
+    )
+        .bind(id)
+        .fetch_one(&appstate.pool)
+        .await;
+
+    let current_state = WorkState::from(latest_event.unwrap().current_state_id);
+    if is_valid_transition(current_state.clone(), data.clone()) {
+
+        let new_previous_state_id: &i32 = &current_state.into();
+        let new_current_state_id: &i32 = &data.into();
+
+        sqlx::query(
+            "INSERT INTO events (work_id, previous_state, current_state)
+            VALUES (?, ?, ?)"
+        )
+            .bind(id)
+            .bind(new_previous_state_id)
+            .bind(new_current_state_id)
+            .execute(&appstate.pool)
+            .await
+            .map(|_| ())
+            .map_err(internal_error)
+    } else {
+        Err(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
+}
+

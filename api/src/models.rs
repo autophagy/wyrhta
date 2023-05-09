@@ -9,7 +9,7 @@ pub(crate) struct Clay {
     pub(crate) shrinkage: f64,
 }
 
-#[derive(Serialize, PartialEq)]
+#[derive(Deserialize, Serialize, PartialEq, Debug, Clone)]
 pub(crate) enum State {
     Thrown,
     Trimming,
@@ -34,15 +34,28 @@ impl From<i32> for State {
     }
 }
 
-fn is_valid_transition(previous_state: Option<State>, current_state: State) -> bool {
+impl From<State> for i32 {
+    fn from(state: State) -> Self {
+        match state {
+            State::Thrown => 1,
+            State::Trimming => 2,
+            State::AwaitingBisqueFiring => 3,
+            State::AwaitingGlazeFiring => 4,
+            State::Finished => 5,
+            State::Recycled => 6,
+            State::Unknown => 0
+        }
+    }
+}
+
+pub(crate) fn is_valid_transition(previous_state: State, current_state: State) -> bool {
     match (previous_state, current_state) {
-        (None, State::Thrown) => true,
-        (Some(State::Thrown), State::Trimming) => true,
-        (Some(State::Trimming), State::AwaitingBisqueFiring) => true,
-        (Some(State::AwaitingBisqueFiring), State::AwaitingGlazeFiring) => true,
-        (Some(State::AwaitingGlazeFiring), State::Finished) => true,
-        (Some(State::Recycled), State::Thrown) => true,
-        (Some(previous), State::Recycled) => {
+        (State::Thrown, State::Trimming) => true,
+        (State::Trimming, State::AwaitingBisqueFiring) => true,
+        (State::AwaitingBisqueFiring, State::AwaitingGlazeFiring) => true,
+        (State::AwaitingGlazeFiring, State::Finished) => true,
+        (State::Recycled, State::Thrown) => true,
+        (previous, State::Recycled) => {
             previous != State::Finished && previous != State::Unknown
         }
         _ => false,
@@ -139,9 +152,7 @@ mod tests {
 
     #[test]
     fn test_is_valid_transition() {
-        // Thrown can only be reached from either no initial start state, or the recycled state.
-        assert!(is_valid_transition(None, State::Thrown));
-        assert!(is_valid_transition(Some(State::Recycled), State::Thrown));
+        assert!(is_valid_transition(State::Recycled, State::Thrown));
 
         // Test invalid transitions to Thrown
         let other_states = vec![
@@ -151,33 +162,29 @@ mod tests {
             State::Finished,
         ];
         for state in other_states {
-            assert!(!is_valid_transition(Some(state), State::Thrown));
+            assert!(!is_valid_transition(state, State::Thrown));
         }
 
         // Trimming can only be reached from the thrown state.
-        assert!(is_valid_transition(Some(State::Thrown), State::Trimming));
-        assert!(!is_valid_transition(None, State::Trimming));
+        assert!(is_valid_transition(State::Thrown, State::Trimming));
 
         // Bisque can only be reached from Trimming.
         assert!(is_valid_transition(
-            Some(State::Trimming),
+            State::Trimming,
             State::AwaitingBisqueFiring
         ));
-        assert!(!is_valid_transition(None, State::AwaitingBisqueFiring));
 
         // Glaze can only be reached from Bisque.
         assert!(is_valid_transition(
-            Some(State::AwaitingBisqueFiring),
+            State::AwaitingBisqueFiring,
             State::AwaitingGlazeFiring
         ));
-        assert!(!is_valid_transition(None, State::AwaitingGlazeFiring));
 
         // Finished can only be reached from Glaze.
         assert!(is_valid_transition(
-            Some(State::AwaitingGlazeFiring),
+            State::AwaitingGlazeFiring,
             State::Finished
         ));
-        assert!(!is_valid_transition(None, State::Finished));
 
         // Recycled can be reached from any state except finished and no initial start state.
         let valid_recycled_previous_states = vec![
@@ -187,9 +194,8 @@ mod tests {
             State::AwaitingGlazeFiring,
         ];
         for state in valid_recycled_previous_states {
-            assert!(is_valid_transition(Some(state), State::Recycled));
+            assert!(is_valid_transition(state, State::Recycled));
         }
-        assert!(!is_valid_transition(None, State::Recycled));
-        assert!(!is_valid_transition(Some(State::Finished), State::Recycled));
+        assert!(!is_valid_transition(State::Finished, State::Recycled));
     }
 }

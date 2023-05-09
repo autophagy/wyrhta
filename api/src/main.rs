@@ -6,7 +6,7 @@ use aws_sdk_s3::{config::Region, Client};
 use axum::{
     http::StatusCode,
     response::IntoResponse,
-    routing::{get, post},
+    routing::{get, post, put},
     Json, Router,
 };
 use serde::Serialize;
@@ -19,7 +19,7 @@ use handlers::clay::clays;
 use handlers::event::events;
 use handlers::image::upload_image_to_s3;
 use handlers::project::{project, projects, put_project, works as project_works};
-use handlers::work::{events as work_events, put_work, work, works};
+use handlers::work::{events as work_events, put_work, work, works, put_state};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -75,6 +75,7 @@ async fn main() {
         .route("/works", get(works))
         .route("/works/:id", get(work).put(put_work))
         .route("/works/:id/events", get(work_events))
+        .route("/works/:id/state", put(put_state))
         .route("/clays", get(clays))
         .route("/upload", post(upload_image_to_s3))
         .layer(cors)
