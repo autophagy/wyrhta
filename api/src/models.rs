@@ -107,6 +107,17 @@ pub(crate) struct Work {
     pub(crate) created_at: NaiveDateTime,
 }
 
+#[derive(Deserialize, Debug)]
+pub(crate) struct PutWork {
+    pub(crate) project_id: i32,
+    pub(crate) name: String,
+    pub(crate) notes: Option<String>,
+    pub(crate) clay_id: i32,
+    pub(crate) glaze_description: Option<String>,
+    pub(crate) thumbnail: Option<String>,
+    pub(crate) header: Option<String>,
+}
+
 #[derive(Serialize)]
 pub(crate) struct Images {
     pub(crate) header: Option<String>,

@@ -1,13 +1,14 @@
 use axum::response::IntoResponse;
 use axum::{
-    extract::{Path, State},
+    extract::{Json as ExtractJson, Path, State},
     Json,
 };
 use chrono::NaiveDateTime;
 use serde::Serialize;
-use serde_json::from_str;
 
-use crate::models::{ApiResource, Clay, CurrentState, Event, Images, State as WorkState, Work};
+use crate::models::{
+    ApiResource, Clay, CurrentState, Event, Images, PutWork, State as WorkState, Work,
+};
 use crate::{handle_optional_result, internal_error, AppState};
 
 pub(crate) static WORK_DTO_QUERY: &str = "
@@ -61,16 +62,11 @@ pub(crate) fn workdto_to_work(workdto: WorkDTO, appstate: &AppState) -> Work {
         shrinkage: workdto.clay_shrinkage,
     };
 
-    let notes = match workdto.notes {
-        None => None,
-        Some(notes) => Some(from_str(&format!("\"{}\"", notes)).unwrap()),
-    };
-
     Work {
         id: workdto.id,
         project: (ApiResource::Project, workdto.project_id).into(),
         name: workdto.name,
-        notes,
+        notes: workdto.notes,
         clay,
         current_state: CurrentState {
             state: workdto.current_state_id.into(),
@@ -147,5 +143,44 @@ pub(crate) async fn events(
     .await
     .map(|events| events.into_iter().map(Event::from).collect::<Vec<Event>>())
     .map(Json)
+    .map_err(internal_error)
+}
+
+// PUT
+
+pub(crate) async fn put_work(
+    Path(id): Path<i32>,
+    State(appstate): State<AppState>,
+    ExtractJson(data): ExtractJson<PutWork>,
+) -> impl IntoResponse {
+    let thumbnail_key = data.thumbnail.as_ref().map(|key| {
+        key.strip_prefix(&format!("{}/", &appstate.config.images_url))
+            .unwrap_or(key)
+            .to_owned()
+    });
+
+    let header_key = data.header.as_ref().map(|key| {
+        key.strip_prefix(&format!("{}/", &appstate.config.images_url))
+            .unwrap_or(key)
+            .to_owned()
+    });
+
+    sqlx::query(
+        "UPDATE works
+        SET project_id=?, name=?, notes=?, clay_id=?, glaze_description=?,
+        header_key=?, thumbnail_key=?
+        WHERE id=?",
+    )
+    .bind(data.project_id)
+    .bind(data.name)
+    .bind(data.notes)
+    .bind(data.clay_id)
+    .bind(data.glaze_description)
+    .bind(header_key)
+    .bind(thumbnail_key)
+    .bind(id)
+    .execute(&appstate.pool)
+    .await
+    .map(|_| ())
     .map_err(internal_error)
 }

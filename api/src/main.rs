@@ -16,10 +16,11 @@ use std::error::Error;
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
 
+use handlers::clay::clays;
 use handlers::event::events;
 use handlers::image::upload_image_to_s3;
 use handlers::project::{project, projects, put_project, works as project_works};
-use handlers::work::{events as work_events, work, works};
+use handlers::work::{events as work_events, put_work, work, works};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -75,8 +76,9 @@ async fn main() {
         .route("/projects/:id/works", get(project_works))
         .route("/events", get(events))
         .route("/works", get(works))
-        .route("/works/:id", get(work))
+        .route("/works/:id", get(work).put(put_work))
         .route("/works/:id/events", get(work_events))
+        .route("/clays", get(clays))
         .route("/upload", post(upload_image_to_s3))
         .layer(cors)
         .with_state(state);

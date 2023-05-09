@@ -1,20 +1,15 @@
-module Api.Work exposing (Work, getWork, getWorkEvents, getWorks, workDecoder)
+module Api.Work exposing (UpdateWork, Work, getWork, getWorkEvents, getWorks, putWork, workDecoder)
 
 import Api exposing (ApiResource, andThenDecode, apiResourceDecoder)
+import Api.Clay exposing (Clay, clayDecoder)
 import Api.Event exposing (Event, eventsDecoder)
-import Api.State exposing (State, isTerminalState, stateDecoder)
+import Api.State exposing (State, stateDecoder)
 import Http
-import Json.Decode exposing (Decoder, field, float, int, list, map2, map4, maybe, string, succeed)
+import Json.Decode exposing (Decoder, field, int, list, map2, maybe, string, succeed)
 import Json.Decode.Extra exposing (datetime)
-import Time exposing (Posix, posixToMillis)
-
-
-type alias Duration =
-    Int
-
-
-type alias StateDuration =
-    ( Duration, State )
+import Json.Encode as Encode
+import Json.Encode.Extra as Encode
+import Time exposing (Posix)
 
 
 type alias CurrentState =
@@ -26,14 +21,6 @@ type alias CurrentState =
 type alias Images =
     { header : Maybe String
     , thumbnail : Maybe String
-    }
-
-
-type alias Clay =
-    { id : Int
-    , name : String
-    , description : Maybe String
-    , shrinkage : Float
     }
 
 
@@ -62,15 +49,6 @@ imagesDecoder =
     map2 Images
         (field "header" (maybe string))
         (field "thumbnail" (maybe string))
-
-
-clayDecoder : Decoder Clay
-clayDecoder =
-    map4 Clay
-        (field "id" int)
-        (field "name" string)
-        (field "description" (maybe string))
-        (field "shrinkage" float)
 
 
 workDecoder : Decoder Work
@@ -108,4 +86,45 @@ getWorkEvents id options =
     Http.get
         { url = "http://localhost:8000/works/" ++ String.fromInt id ++ "/events"
         , expect = Http.expectJson options.onResponse eventsDecoder
+        }
+
+
+
+-- PUT
+
+
+type alias UpdateWork =
+    { project_id : Int
+    , name : String
+    , notes : Maybe String
+    , clay_id : Int
+    , glaze_description : Maybe String
+    , thumbnail : Maybe String
+    , header : Maybe String
+    }
+
+
+workEncoder : UpdateWork -> Encode.Value
+workEncoder work =
+    Encode.object
+        [ ( "project_id", Encode.int work.project_id )
+        , ( "name", Encode.string work.name )
+        , ( "notes", Encode.maybe Encode.string work.notes )
+        , ( "clay_id", Encode.int work.clay_id )
+        , ( "glaze_description", Encode.maybe Encode.string work.glaze_description )
+        , ( "thumbnail", Encode.maybe Encode.string work.thumbnail )
+        , ( "header", Encode.maybe Encode.string work.header )
+        ]
+
+
+putWork : Int -> UpdateWork -> { onResponse : Result Http.Error () -> msg } -> Cmd msg
+putWork id project options =
+    Http.request
+        { method = "PUT"
+        , headers = []
+        , url = " http://localhost:8000/works/" ++ String.fromInt id
+        , body = Http.jsonBody <| workEncoder project
+        , expect = Http.expectWhatever options.onResponse
+        , timeout = Nothing
+        , tracker = Nothing
         }

@@ -199,10 +199,20 @@ input[type="text"] {
     width: 300px;
     height: 300px;
   }
+
+  img.image-upload.header {
+    width: 500px;
+  }
 }
 
 .settings.project-settings {
   display: grid;
   grid-template-columns: auto 300px;
+  gap: 2em;
+}
+
+.settings.work-settings {
+  display: grid;
+  grid-template-columns: auto 500px;
   gap: 2em;
 }
