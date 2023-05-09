@@ -25,7 +25,7 @@ page params =
         { init = init params.id
         , update = update
         , subscriptions = subscriptions
-        , view = view
+        , view = view params.id
         }
 
 
@@ -214,8 +214,8 @@ optionalImage url =
             []
 
 
-view : Model -> View Msg
-view model =
+view : String -> Model -> View Msg
+view id model =
     let
         title =
             case model.workData of
@@ -240,7 +240,11 @@ view model =
 
                 _ ->
                     Html.div [] []
+
+        controls =
+            Html.div [ class "controls container" ]
+                [ Html.a [ Html.Attributes.href <| "/works/" ++ id ++ "/edit" ] [ Html.text "Edit" ] ]
     in
     { title = title
-    , body = [ viewLoadingPage modelToPageState model [ workView, eventsView ] ]
+    , body = [ viewLoadingPage modelToPageState model [ workView, eventsView ], controls ]
     }

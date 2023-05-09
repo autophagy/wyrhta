@@ -21,7 +21,7 @@ page params =
         { init = init params.id
         , update = update
         , subscriptions = subscriptions
-        , view = view
+        , view = view params.id
         }
 
 
@@ -150,8 +150,8 @@ viewWorks works =
     Html.div [ class "container" ] [ summaryList <| List.map workSummary works ]
 
 
-view : Model -> View Msg
-view model =
+view : String -> Model -> View Msg
+view id model =
     let
         title =
             case model.projectData of
@@ -176,7 +176,11 @@ view model =
 
                 _ ->
                     Html.div [] []
+
+        controls =
+            Html.div [ class "controls container" ]
+                [ Html.a [ Html.Attributes.href <| "/projects/" ++ id ++ "/edit" ] [ Html.text "Edit" ] ]
     in
     { title = title
-    , body = [ viewLoadingPage modelToPageState model [ projectView, worksView ] ]
+    , body = [ viewLoadingPage modelToPageState model [ projectView, worksView ], controls ]
     }
