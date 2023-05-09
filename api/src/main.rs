@@ -3,7 +3,6 @@ mod models;
 
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::{config::Region, Client};
-use axum::http::Method;
 use axum::{
     http::StatusCode,
     response::IntoResponse,
@@ -14,7 +13,7 @@ use serde::Serialize;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePool, SqlitePoolOptions};
 use std::error::Error;
 use std::net::SocketAddr;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 
 use handlers::clay::clays;
 use handlers::event::events;
@@ -66,9 +65,7 @@ async fn main() {
         s3_client,
     };
 
-    let cors = CorsLayer::new()
-        .allow_methods([Method::GET])
-        .allow_origin(Any);
+    let cors = CorsLayer::permissive();
 
     let app = Router::new()
         .route("/projects", get(projects))
