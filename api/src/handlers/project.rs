@@ -92,6 +92,29 @@ pub(crate) async fn put_project(
         .map_err(internal_error)
 }
 
+pub(crate) async fn post_project(
+    State(appstate): State<AppState>,
+    ExtractJson(data): ExtractJson<PutProject>,
+) -> impl IntoResponse {
+    let thumbnail_key = data.thumbnail.as_ref().map(|key| {
+        key.strip_prefix(&format!("{}/", &appstate.config.images_url))
+            .unwrap_or(key)
+            .to_owned()
+    });
+
+    sqlx::query(
+        "INSERT INTO projects (name, description, thumbnail_key)
+        VALUES (?, ?, ?)",
+    )
+    .bind(data.name)
+    .bind(data.description)
+    .bind(thumbnail_key)
+    .execute(&appstate.pool)
+    .await
+    .map(|_| ())
+    .map_err(internal_error)
+}
+
 pub(crate) async fn works(
     Path(id): Path<i32>,
     State(appstate): State<AppState>,

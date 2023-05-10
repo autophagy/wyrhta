@@ -18,8 +18,8 @@ use tower_http::cors::CorsLayer;
 use handlers::clay::clays;
 use handlers::event::events;
 use handlers::image::upload_image_to_s3;
-use handlers::project::{project, projects, put_project, works as project_works};
-use handlers::work::{events as work_events, put_work, work, works, put_state};
+use handlers::project::{post_project, project, projects, put_project, works as project_works};
+use handlers::work::{events as work_events, put_state, put_work, work, works};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -68,7 +68,7 @@ async fn main() {
     let cors = CorsLayer::permissive();
 
     let app = Router::new()
-        .route("/projects", get(projects))
+        .route("/projects", get(projects).post(post_project))
         .route("/projects/:id", get(project).put(put_project))
         .route("/projects/:id/works", get(project_works))
         .route("/events", get(events))

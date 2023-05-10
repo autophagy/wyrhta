@@ -43,7 +43,7 @@ impl From<State> for i32 {
             State::AwaitingGlazeFiring => 4,
             State::Finished => 5,
             State::Recycled => 6,
-            State::Unknown => 0
+            State::Unknown => 0,
         }
     }
 }
@@ -55,9 +55,7 @@ pub(crate) fn is_valid_transition(previous_state: State, current_state: State) -
         (State::AwaitingBisqueFiring, State::AwaitingGlazeFiring) => true,
         (State::AwaitingGlazeFiring, State::Finished) => true,
         (State::Recycled, State::Thrown) => true,
-        (previous, State::Recycled) => {
-            previous != State::Finished && previous != State::Unknown
-        }
+        (previous, State::Recycled) => previous != State::Finished && previous != State::Unknown,
         _ => false,
     }
 }

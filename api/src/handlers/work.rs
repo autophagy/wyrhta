@@ -7,8 +7,8 @@ use chrono::NaiveDateTime;
 use serde::Serialize;
 
 use crate::models::{
-    ApiResource, Clay, CurrentState, Event, Images, PutWork, State as WorkState, Work,
-    is_valid_transition
+    is_valid_transition, ApiResource, Clay, CurrentState, Event, Images, PutWork,
+    State as WorkState, Work,
 };
 use crate::{handle_optional_result, internal_error, AppState};
 
@@ -204,24 +204,21 @@ pub(crate) async fn put_state(
 
     let current_state = WorkState::from(latest_event.unwrap().current_state_id);
     if is_valid_transition(current_state.clone(), data.clone()) {
-
         let new_previous_state_id: &i32 = &current_state.into();
         let new_current_state_id: &i32 = &data.into();
 
         sqlx::query(
             "INSERT INTO events (work_id, previous_state, current_state)
-            VALUES (?, ?, ?)"
+            VALUES (?, ?, ?)",
         )
-            .bind(id)
-            .bind(new_previous_state_id)
-            .bind(new_current_state_id)
-            .execute(&appstate.pool)
-            .await
-            .map(|_| ())
-            .map_err(internal_error)
+        .bind(id)
+        .bind(new_previous_state_id)
+        .bind(new_current_state_id)
+        .execute(&appstate.pool)
+        .await
+        .map(|_| ())
+        .map_err(internal_error)
     } else {
         Err(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
     }
-
 }
-

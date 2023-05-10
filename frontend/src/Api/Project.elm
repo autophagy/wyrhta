@@ -75,7 +75,7 @@ getProjectWorks id options =
 
 
 
--- PUT
+-- PUT/POST
 
 
 type alias UpdateProject =
@@ -100,6 +100,19 @@ putProject id project options =
         { method = "PUT"
         , headers = []
         , url = " http://localhost:8000/projects/" ++ String.fromInt id
+        , body = Http.jsonBody <| projectEncoder project
+        , expect = Http.expectWhatever options.onResponse
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+postProject : UpdateProject -> { onResponse : Result Http.Error () -> msg } -> Cmd msg
+postProject project options =
+    Http.request
+        { method = "POST"
+        , headers = []
+        , url = " http://localhost:8000/projects"
         , body = Http.jsonBody <| projectEncoder project
         , expect = Http.expectWhatever options.onResponse
         , timeout = Nothing
