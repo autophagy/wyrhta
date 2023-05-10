@@ -243,7 +243,9 @@ view id model =
 
         controls =
             Html.div [ class "controls container" ]
-                [ Html.a [ Html.Attributes.href <| "/works/" ++ id ++ "/edit" ] [ Html.text "Edit" ] ]
+                [ Html.a [ Html.Attributes.href <| "/works/" ++ id ++ "/state" ] [ Html.text "Change State" ]
+                , Html.a [ Html.Attributes.href <| "/works/" ++ id ++ "/edit" ] [ Html.text "Edit" ]
+                ]
     in
     { title = title
     , body = [ viewLoadingPage modelToPageState model [ workView, eventsView ], controls ]

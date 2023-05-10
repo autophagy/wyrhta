@@ -43,7 +43,7 @@ stateToString s =
             "thrown"
 
         Trimming ->
-            "trimming"
+            "being trimmed"
 
         Recycled ->
             "recycled"

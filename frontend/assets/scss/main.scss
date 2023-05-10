@@ -217,3 +217,8 @@ input[type="text"] {
   grid-template-columns: auto 500px;
   gap: 2em;
 }
+
+.controls {
+  display: flex;
+  gap: 1em;
+}
