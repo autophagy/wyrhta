@@ -5,7 +5,8 @@ import Api.State exposing (State, stateDecoder)
 import Http
 import Json.Decode exposing (Decoder, field, int, map5, maybe)
 import Json.Decode.Extra exposing (datetime)
-import Time exposing (Posix, posixToMillis)
+import Time exposing (Posix)
+import Views.Posix exposing (comparePosix)
 
 
 type alias Event =
@@ -19,7 +20,7 @@ type alias Event =
 
 compareEvent : Event -> Event -> Order
 compareEvent a b =
-    compare (posixToMillis b.created_at) (posixToMillis a.created_at)
+    comparePosix b.created_at a.created_at
 
 
 getEvents : { onResponse : Result Http.Error (List Event) -> msg } -> Cmd msg

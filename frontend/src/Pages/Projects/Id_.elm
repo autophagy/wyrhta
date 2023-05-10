@@ -10,7 +10,7 @@ import Http
 import Page exposing (Page)
 import View exposing (View)
 import Views.LoadingPage exposing (PageState(..), viewLoadingPage)
-import Views.Posix exposing (posixToString)
+import Views.Posix exposing (comparePosix, posixToString)
 import Views.String exposing (capitalize)
 import Views.SummaryList exposing (Summary, summaryList)
 
@@ -147,7 +147,11 @@ workSummary work =
 
 viewWorks : List Work -> Html Msg
 viewWorks works =
-    Html.div [ class "container" ] [ summaryList <| List.map workSummary works ]
+    Html.div [ class "container" ]
+        [ summaryList <|
+            List.map workSummary <|
+                List.sortWith (\a b -> comparePosix b.current_state.transitioned_at a.current_state.transitioned_at) works
+        ]
 
 
 view : String -> Model -> View Msg

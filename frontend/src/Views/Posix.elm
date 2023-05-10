@@ -1,6 +1,6 @@
-module Views.Posix exposing (posixToString)
+module Views.Posix exposing (comparePosix, posixToString)
 
-import Time exposing (Month(..), Posix, toDay, toMonth, toYear, utc)
+import Time exposing (Month(..), Posix, posixToMillis, toDay, toMonth, toYear, utc)
 
 
 monthToString : Month -> String
@@ -46,3 +46,8 @@ monthToString month =
 posixToString : Posix -> String
 posixToString p =
     String.join "." [ String.fromInt <| toYear utc p, monthToString <| toMonth utc p, String.pad 2 '0' <| String.fromInt <| toDay utc p ]
+
+
+comparePosix : Posix -> Posix -> Order
+comparePosix a b =
+    compare (posixToMillis a) (posixToMillis b)
