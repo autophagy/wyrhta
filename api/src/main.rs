@@ -47,7 +47,7 @@ async fn main() {
         .await
         .expect("cannot connect to db");
 
-    //    sqlx::migrate!("db/migrations").run(&pool).await.unwrap();
+    sqlx::migrate!("db/migrations").run(&pool).await.unwrap();
 
     let region_provider = RegionProviderChain::first_try(Region::new("eu-central-1"));
 
