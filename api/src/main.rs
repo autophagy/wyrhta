@@ -18,8 +18,12 @@ use tracing::Level;
 use handlers::clay::clays;
 use handlers::event::events;
 use handlers::image::upload_image_to_s3;
-use handlers::project::{post_project, project, projects, put_project, works as project_works};
-use handlers::work::{events as work_events, post_work, put_state, put_work, work, works};
+use handlers::project::{
+    delete_project, post_project, project, projects, put_project, works as project_works,
+};
+use handlers::work::{
+    delete_work, events as work_events, post_work, put_state, put_work, work, works,
+};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -74,11 +78,14 @@ async fn main() {
 
     let app = Router::new()
         .route("/projects", get(projects).post(post_project))
-        .route("/projects/:id", get(project).put(put_project))
+        .route(
+            "/projects/:id",
+            get(project).put(put_project).delete(delete_project),
+        )
         .route("/projects/:id/works", get(project_works))
         .route("/events", get(events))
         .route("/works", get(works).post(post_work))
-        .route("/works/:id", get(work).put(put_work))
+        .route("/works/:id", get(work).put(put_work).delete(delete_work))
         .route("/works/:id/events", get(work_events))
         .route("/works/:id/state", put(put_state))
         .route("/clays", get(clays))

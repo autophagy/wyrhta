@@ -1,4 +1,4 @@
-module Api.Work exposing (UpdateWork, Work, getWork, getWorkEvents, getWorks, postWork, putWork, workDecoder)
+module Api.Work exposing (UpdateWork, Work, deleteWork, getWork, getWorkEvents, getWorks, postWork, putWork, workDecoder)
 
 import Api exposing (ApiResource, andThenDecode, apiResourceDecoder)
 import Api.Clay exposing (Clay, clayDecoder)
@@ -137,6 +137,19 @@ postWork project options =
         , headers = []
         , url = "http://localhost:8000/works"
         , body = Http.jsonBody <| workEncoder project
+        , expect = Http.expectWhatever options.onResponse
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+deleteWork : Int -> { onResponse : Result Http.Error () -> msg } -> Cmd msg
+deleteWork id options =
+    Http.request
+        { method = "DELETE"
+        , headers = []
+        , url = "http://localhost:8000/works/" ++ String.fromInt id
+        , body = Http.emptyBody
         , expect = Http.expectWhatever options.onResponse
         , timeout = Nothing
         , tracker = Nothing

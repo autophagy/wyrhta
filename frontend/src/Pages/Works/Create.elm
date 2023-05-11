@@ -89,12 +89,12 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ApiRespondedProjects (Ok projects) ->
-            ( { model | projectData = Api.Success projects, projectId = Maybe.withDefault 0 <| Maybe.map (.id) <| List.head projects }
+            ( { model | projectData = Api.Success projects, projectId = Maybe.withDefault 0 <| Maybe.map .id <| List.head projects }
             , Cmd.none
             )
 
         ApiRespondedClays (Ok clays) ->
-            ( { model | clayData = Api.Success clays, clayId = Maybe.withDefault 0 <| Maybe.map (.id) <| List.head clays }
+            ( { model | clayData = Api.Success clays, clayId = Maybe.withDefault 0 <| Maybe.map .id <| List.head clays }
             , Cmd.none
             )
 

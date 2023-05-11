@@ -133,3 +133,17 @@ pub(crate) async fn works(
         .map(Json)
         .map_err(internal_error)
 }
+
+// DELETE
+
+pub(crate) async fn delete_project(
+    Path(id): Path<i32>,
+    State(appstate): State<AppState>,
+) -> impl IntoResponse {
+    sqlx::query("DELETE FROM projects WHERE id = ?")
+        .bind(id)
+        .execute(&appstate.pool)
+        .await
+        .map(|_| ())
+        .map_err(internal_error)
+}

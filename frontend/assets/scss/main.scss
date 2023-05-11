@@ -172,18 +172,22 @@ h2 {
 }
 
 
-  button {
-    background-color: #EAD9CB;
-    border: none;
-    padding: 15px 32px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    margin-top: 1em;
-    font-weight: bold;
-    min-width: 8em;
-    cursor: pointer;
-  }
+button {
+  background-color: #EAD9CB;
+  border: none;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 1em;
+  font-weight: bold;
+  min-width: 8em;
+  cursor: pointer;
+}
+
+button.warning {
+  background-color: #F29F9F;
+}
 
 input[type="text"] {
     padding: 1em;

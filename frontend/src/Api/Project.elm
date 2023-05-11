@@ -118,3 +118,16 @@ postProject project options =
         , timeout = Nothing
         , tracker = Nothing
         }
+
+
+deleteProject : Int -> { onResponse : Result Http.Error () -> msg } -> Cmd msg
+deleteProject id options =
+    Http.request
+        { method = "DELETE"
+        , headers = []
+        , url = " http://localhost:8000/projects/" ++ String.fromInt id
+        , body = Http.emptyBody
+        , expect = Http.expectWhatever options.onResponse
+        , timeout = Nothing
+        , tracker = Nothing
+        }

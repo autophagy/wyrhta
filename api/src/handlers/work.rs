@@ -268,3 +268,25 @@ pub(crate) async fn post_work(
     .map_err(internal_error)
     .map(|_| ())
 }
+
+// DELETE
+
+pub(crate) async fn delete_work(
+    Path(id): Path<i32>,
+    State(appstate): State<AppState>,
+) -> impl IntoResponse {
+    sqlx::query("DELETE FROM events WHERE work_id = ?")
+        .bind(id)
+        .execute(&appstate.pool)
+        .await
+        .map(|_| ())
+        .map_err(internal_error)
+        .unwrap();
+
+    sqlx::query("DELETE FROM works WHERE id = ?")
+        .bind(id)
+        .execute(&appstate.pool)
+        .await
+        .map(|_| ())
+        .map_err(internal_error)
+}
