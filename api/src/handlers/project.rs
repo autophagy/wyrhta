@@ -5,9 +5,10 @@ use axum::{
 };
 use chrono::NaiveDateTime;
 
+use crate::error::{internal_error, optional_result};
 use crate::handlers::work::{workdto_to_work, WorkDTO, WORK_DTO_QUERY};
 use crate::models::{Images, Project, PutProject, Work};
-use crate::{handle_optional_result, internal_error, AppState};
+use crate::AppState;
 
 static PROJECT_DTO_QUERY: &str = "
 SELECT id, name, description, created_at, header_key, thumbnail_key
@@ -61,7 +62,7 @@ pub(crate) async fn project(
     Path(id): Path<i32>,
     State(appstate): State<AppState>,
 ) -> impl IntoResponse {
-    handle_optional_result(
+    optional_result(
         sqlx::query_as::<_, ProjectDTO>(&format!("{} {}", PROJECT_DTO_QUERY, "WHERE id = ?"))
             .bind(id)
             .fetch_optional(&appstate.pool)

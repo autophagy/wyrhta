@@ -1,19 +1,19 @@
+mod error;
 mod handlers;
 mod models;
 
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::{config::Region, Client};
 use axum::{
-    http::StatusCode,
-    response::IntoResponse,
     routing::{get, post, put},
-    Json, Router,
+    Router,
 };
-use serde::Serialize;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePool, SqlitePoolOptions};
-use std::error::Error;
 use std::net::SocketAddr;
+use tower_http::classify::StatusInRangeAsFailures;
 use tower_http::cors::CorsLayer;
+use tower_http::trace::{self, TraceLayer};
+use tracing::Level;
 
 use handlers::clay::clays;
 use handlers::event::events;
@@ -67,6 +67,11 @@ async fn main() {
 
     let cors = CorsLayer::permissive();
 
+    tracing_subscriber::fmt()
+        .with_max_level(Level::INFO)
+        .pretty()
+        .init();
+
     let app = Router::new()
         .route("/projects", get(projects).post(post_project))
         .route("/projects/:id", get(project).put(put_project))
@@ -79,6 +84,11 @@ async fn main() {
         .route("/clays", get(clays))
         .route("/upload", post(upload_image_to_s3))
         .layer(cors)
+        .layer(
+            TraceLayer::new(StatusInRangeAsFailures::new(400..=599).into_make_classifier())
+                .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
+        )
         .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
@@ -87,24 +97,4 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
-}
-
-fn internal_error<E>(err: E) -> StatusCode
-where
-    E: std::error::Error,
-{
-    println!("{}", err);
-    StatusCode::INTERNAL_SERVER_ERROR
-}
-
-fn handle_optional_result<T, E>(result: Result<Option<T>, E>) -> impl IntoResponse
-where
-    T: Serialize,
-    E: Error,
-{
-    match result {
-        Ok(Some(value)) => Json(value).into_response(),
-        Ok(None) => StatusCode::NOT_FOUND.into_response(),
-        Err(err) => internal_error(err).into_response(),
-    }
 }

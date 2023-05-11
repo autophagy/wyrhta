@@ -1,8 +1,9 @@
 use axum::response::IntoResponse;
 use axum::{extract::State, Json};
 
+use crate::error::internal_error;
 use crate::models::Clay;
-use crate::{internal_error, AppState};
+use crate::AppState;
 
 #[derive(sqlx::FromRow)]
 struct ClayDTO {

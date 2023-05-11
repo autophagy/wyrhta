@@ -1,33 +1,10 @@
-use std::error::Error;
-use std::fmt;
-
 use axum::extract::{multipart::Field, Multipart, State};
 use axum::response::IntoResponse;
 use std::path::Path as FilePath;
 use uuid::Uuid;
 
-use crate::{internal_error, AppState};
-
-#[derive(Debug)]
-struct ImageUploadError {
-    details: String,
-}
-
-impl ImageUploadError {
-    fn new(msg: &str) -> ImageUploadError {
-        ImageUploadError {
-            details: msg.to_string(),
-        }
-    }
-}
-
-impl fmt::Display for ImageUploadError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.details)
-    }
-}
-
-impl Error for ImageUploadError {}
+use crate::error::{internal_error, WyrhtaError};
+use crate::AppState;
 
 fn calculate_s3_key(file: &Field) -> Option<(String, String)> {
     let category = file.name()?.to_string();
@@ -43,11 +20,11 @@ pub(crate) async fn upload_image_to_s3(
     mut files: Multipart,
 ) -> impl IntoResponse {
     let file = files.next_field().await.unwrap().unwrap();
-    let result = match calculate_s3_key(&file) {
+    match calculate_s3_key(&file) {
         Some((key, content_type)) => {
             let data = file.bytes().await.unwrap();
 
-            let _resp = appstate
+            appstate
                 .s3_client
                 .put_object()
                 .bucket(&appstate.config.images_bucket)
@@ -55,11 +32,10 @@ pub(crate) async fn upload_image_to_s3(
                 .body(data.into())
                 .content_type(&content_type)
                 .send()
-                .await;
-
-            Ok(format!("{}/{}", &appstate.config.images_url, &key))
+                .await
+                .map_err(internal_error)
+                .map(|_| format!("{}/{}", &appstate.config.images_url, &key))
         }
-        None => Err(ImageUploadError::new("Unable to create key")),
-    };
-    result.map_err(internal_error)
+        None => Err(WyrhtaError::ImageUploadError),
+    }
 }

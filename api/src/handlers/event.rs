@@ -6,8 +6,9 @@ use axum::{
 use chrono::NaiveDateTime;
 use serde::Deserialize;
 
+use crate::error::internal_error;
 use crate::models::{ApiResource, Event, State as WorkState};
-use crate::{internal_error, AppState};
+use crate::AppState;
 
 #[derive(sqlx::FromRow)]
 struct EventDTO {

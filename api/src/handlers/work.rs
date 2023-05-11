@@ -6,11 +6,12 @@ use axum::{
 use chrono::NaiveDateTime;
 use serde::Serialize;
 
+use crate::error::{internal_error, optional_result, WyrhtaError};
 use crate::models::{
     is_valid_transition, ApiResource, Clay, CurrentState, Event, Images, PutWork,
     State as WorkState, Work,
 };
-use crate::{handle_optional_result, internal_error, AppState};
+use crate::AppState;
 
 pub(crate) static WORK_DTO_QUERY: &str = "
 SELECT w.id, w.project_id, w.name, w.notes, w.glaze_description, w.created_at, w.header_key, w.thumbnail_key,
@@ -97,13 +98,13 @@ pub(crate) async fn work(
     Path(id): Path<i32>,
     State(appstate): State<AppState>,
 ) -> impl IntoResponse {
-    let result = sqlx::query_as::<_, WorkDTO>(&format!("{} {}", WORK_DTO_QUERY, "WHERE w.id = ?"))
-        .bind(id)
-        .fetch_optional(&appstate.pool)
-        .await
-        .map(|work_dto| work_dto.map(|w| workdto_to_work(w, &appstate)));
-
-    handle_optional_result(result)
+    optional_result(
+        sqlx::query_as::<_, WorkDTO>(&format!("{} {}", WORK_DTO_QUERY, "WHERE w.id = ?"))
+            .bind(id)
+            .fetch_optional(&appstate.pool)
+            .await
+            .map(|work_dto| work_dto.map(|w| workdto_to_work(w, &appstate))),
+    )
 }
 
 #[derive(sqlx::FromRow, Debug)]
@@ -219,6 +220,6 @@ pub(crate) async fn put_state(
         .map(|_| ())
         .map_err(internal_error)
     } else {
-        Err(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
+        Err(WyrhtaError::InvalidStateTransition)
     }
 }
