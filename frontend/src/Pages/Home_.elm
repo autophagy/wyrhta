@@ -160,7 +160,7 @@ view : Model -> View Msg
 view model =
     let
         splashView =
-            Html.div [ class "splash" ] [ Html.img [ Html.Attributes.src "/img/Logo.png" ] [] ]
+            Html.div [ class "splash" ] [ Html.div [ class "logo" ] [ Html.img [ Html.Attributes.src "/img/logo.svg" ] [], Html.div [ class "logo-text" ] [ Html.text "Wyrhta Ceramics" ] ] ]
 
         projectsView =
             case model.projectData of
