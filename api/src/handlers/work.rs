@@ -6,7 +6,7 @@ use axum::{
 use chrono::NaiveDateTime;
 use serde::Serialize;
 
-use crate::error::{internal_error, optional_result, WyrhtaError};
+use crate::error::{internal_error, OptionalResult, WyrhtaError};
 use crate::models::{
     is_valid_transition, ApiResource, Clay, CurrentState, Event, Images, PutWork,
     State as WorkState, Work,
@@ -97,14 +97,13 @@ pub(crate) async fn works(State(appstate): State<AppState>) -> impl IntoResponse
 pub(crate) async fn work(
     Path(id): Path<i32>,
     State(appstate): State<AppState>,
-) -> impl IntoResponse {
-    optional_result(
-        sqlx::query_as::<_, WorkDTO>(&format!("{} {}", WORK_DTO_QUERY, "WHERE w.id = ?"))
-            .bind(id)
-            .fetch_optional(&appstate.pool)
-            .await
-            .map(|work_dto| work_dto.map(|w| workdto_to_work(w, &appstate))),
-    )
+) -> OptionalResult<Work, sqlx::Error> {
+    sqlx::query_as::<_, WorkDTO>(&format!("{} {}", WORK_DTO_QUERY, "WHERE w.id = ?"))
+        .bind(id)
+        .fetch_optional(&appstate.pool)
+        .await
+        .map(|work_dto| work_dto.map(|w| workdto_to_work(w, &appstate)))
+        .into()
 }
 
 #[derive(sqlx::FromRow, Debug)]

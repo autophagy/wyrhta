@@ -5,7 +5,7 @@ use axum::{
 };
 use chrono::NaiveDateTime;
 
-use crate::error::{internal_error, optional_result};
+use crate::error::{internal_error, OptionalResult};
 use crate::handlers::work::{workdto_to_work, WorkDTO, WORK_DTO_QUERY};
 use crate::models::{Images, Project, PutProject, Work};
 use crate::AppState;
@@ -61,14 +61,13 @@ pub(crate) async fn projects(State(appstate): State<AppState>) -> impl IntoRespo
 pub(crate) async fn project(
     Path(id): Path<i32>,
     State(appstate): State<AppState>,
-) -> impl IntoResponse {
-    optional_result(
-        sqlx::query_as::<_, ProjectDTO>(&format!("{} {}", PROJECT_DTO_QUERY, "WHERE id = ?"))
-            .bind(id)
-            .fetch_optional(&appstate.pool)
-            .await
-            .map(|opt_project| opt_project.map(|p| projectdto_to_project(p, &appstate))),
-    )
+) -> OptionalResult<Project, sqlx::Error> {
+    sqlx::query_as::<_, ProjectDTO>(&format!("{} {}", PROJECT_DTO_QUERY, "WHERE id = ?"))
+        .bind(id)
+        .fetch_optional(&appstate.pool)
+        .await
+        .map(|opt_project| opt_project.map(|p| projectdto_to_project(p, &appstate)))
+        .into()
 }
 
 pub(crate) async fn put_project(

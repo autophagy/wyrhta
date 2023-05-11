@@ -12,6 +12,14 @@ pub(crate) enum WyrhtaError {
     InvalidStateTransition,
 }
 
+pub(crate) struct OptionalResult<T, E>(pub Result<Option<T>, E>);
+
+impl<T, E> From<Result<Option<T>, E>> for OptionalResult<T, E> {
+    fn from(result: Result<Option<T>, E>) -> Self {
+        OptionalResult(result)
+    }
+}
+
 impl IntoResponse for WyrhtaError {
     fn into_response(self) -> axum::response::Response {
         let (status, msg) = match self {
@@ -35,14 +43,12 @@ where
     WyrhtaError::InternalServerError
 }
 
-pub(crate) fn optional_result<T, E>(result: Result<Option<T>, E>) -> impl IntoResponse
-where
-    T: Serialize,
-    E: Error,
-{
-    match result {
-        Ok(Some(value)) => Json(value).into_response(),
-        Ok(None) => WyrhtaError::ResourceNotFound.into_response(),
-        Err(err) => internal_error(err).into_response(),
+impl<T: Serialize, E: Error> IntoResponse for OptionalResult<T, E> {
+    fn into_response(self) -> axum::response::Response {
+        match self.0 {
+            Ok(Some(value)) => Json(value).into_response(),
+            Ok(None) => WyrhtaError::ResourceNotFound.into_response(),
+            Err(err) => internal_error(err).into_response(),
+        }
     }
 }
