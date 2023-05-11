@@ -18,11 +18,15 @@ fn calculate_s3_key(file: &Field) -> Option<(String, String)> {
 pub(crate) async fn upload_image_to_s3(
     State(appstate): State<AppState>,
     mut files: Multipart,
-) -> impl IntoResponse {
-    let file = files.next_field().await.unwrap().unwrap();
+) -> Result<impl IntoResponse, impl IntoResponse> {
+    let file = files
+        .next_field()
+        .await
+        .map_err(internal_error)?
+        .ok_or(WyrhtaError::ImageUploadError)?;
     match calculate_s3_key(&file) {
         Some((key, content_type)) => {
-            let data = file.bytes().await.unwrap();
+            let data = file.bytes().await.map_err(internal_error)?;
 
             appstate
                 .s3_client

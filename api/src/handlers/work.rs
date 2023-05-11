@@ -191,7 +191,7 @@ pub(crate) async fn put_state(
     Path(id): Path<i32>,
     State(appstate): State<AppState>,
     ExtractJson(data): ExtractJson<WorkState>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, impl IntoResponse> {
     let latest_event = sqlx::query_as::<_, EventDTO>(
         "SELECT id, work_id, previous_state as previous_state_id, current_state as current_state_id, created_at
         FROM events
@@ -201,9 +201,10 @@ pub(crate) async fn put_state(
     )
         .bind(id)
         .fetch_one(&appstate.pool)
-        .await;
+        .await
+        .map_err(internal_error)?;
 
-    let current_state = WorkState::from(latest_event.unwrap().current_state_id);
+    let current_state = WorkState::from(latest_event.current_state_id);
     if is_valid_transition(current_state.clone(), data.clone()) {
         let new_previous_state_id: &i32 = &current_state.into();
         let new_current_state_id: &i32 = &data.into();
@@ -229,7 +230,7 @@ pub(crate) async fn put_state(
 pub(crate) async fn post_work(
     State(appstate): State<AppState>,
     ExtractJson(data): ExtractJson<PutWork>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, impl IntoResponse> {
     let thumbnail_key = data.thumbnail.as_ref().map(|key| {
         key.strip_prefix(&format!("{}/", &appstate.config.images_url))
             .unwrap_or(key)
@@ -256,7 +257,7 @@ pub(crate) async fn post_work(
     .bind(thumbnail_key)
     .fetch_one(&appstate.pool)
     .await
-    .map_err(internal_error).unwrap();
+    .map_err(internal_error)?;
 
     sqlx::query(
         "INSERT INTO events (work_id, current_state)
@@ -274,14 +275,13 @@ pub(crate) async fn post_work(
 pub(crate) async fn delete_work(
     Path(id): Path<i32>,
     State(appstate): State<AppState>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, impl IntoResponse> {
     sqlx::query("DELETE FROM events WHERE work_id = ?")
         .bind(id)
         .execute(&appstate.pool)
         .await
         .map(|_| ())
-        .map_err(internal_error)
-        .unwrap();
+        .map_err(internal_error)?;
 
     sqlx::query("DELETE FROM works WHERE id = ?")
         .bind(id)
