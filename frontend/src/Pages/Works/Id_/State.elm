@@ -58,7 +58,7 @@ stringToState s =
         "thrown" ->
             Thrown
 
-        "trimming" ->
+        "being trimmed" ->
             Trimming
 
         "recycled" ->
