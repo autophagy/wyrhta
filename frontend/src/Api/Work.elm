@@ -1,4 +1,4 @@
-module Api.Work exposing (UpdateWork, Work, getWork, getWorkEvents, getWorks, putWork, workDecoder)
+module Api.Work exposing (UpdateWork, Work, getWork, getWorkEvents, getWorks, postWork, putWork, workDecoder)
 
 import Api exposing (ApiResource, andThenDecode, apiResourceDecoder)
 import Api.Clay exposing (Clay, clayDecoder)
@@ -122,7 +122,20 @@ putWork id project options =
     Http.request
         { method = "PUT"
         , headers = []
-        , url = " http://localhost:8000/works/" ++ String.fromInt id
+        , url = "http://localhost:8000/works/" ++ String.fromInt id
+        , body = Http.jsonBody <| workEncoder project
+        , expect = Http.expectWhatever options.onResponse
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+postWork : UpdateWork -> { onResponse : Result Http.Error () -> msg } -> Cmd msg
+postWork project options =
+    Http.request
+        { method = "POST"
+        , headers = []
+        , url = "http://localhost:8000/works"
         , body = Http.jsonBody <| workEncoder project
         , expect = Http.expectWhatever options.onResponse
         , timeout = Nothing

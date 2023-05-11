@@ -223,3 +223,48 @@ pub(crate) async fn put_state(
         Err(WyrhtaError::InvalidStateTransition)
     }
 }
+
+// POST
+
+pub(crate) async fn post_work(
+    State(appstate): State<AppState>,
+    ExtractJson(data): ExtractJson<PutWork>,
+) -> impl IntoResponse {
+    let thumbnail_key = data.thumbnail.as_ref().map(|key| {
+        key.strip_prefix(&format!("{}/", &appstate.config.images_url))
+            .unwrap_or(key)
+            .to_owned()
+    });
+
+    let header_key = data.header.as_ref().map(|key| {
+        key.strip_prefix(&format!("{}/", &appstate.config.images_url))
+            .unwrap_or(key)
+            .to_owned()
+    });
+
+    let id = sqlx::query_scalar::<_, i32>(
+        "INSERT INTO works (project_id, name, notes, clay_id, glaze_description, header_key, thumbnail_key)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        RETURNING id"
+    )
+    .bind(data.project_id)
+    .bind(data.name)
+    .bind(data.notes)
+    .bind(data.clay_id)
+    .bind(data.glaze_description)
+    .bind(header_key)
+    .bind(thumbnail_key)
+    .fetch_one(&appstate.pool)
+    .await
+    .map_err(internal_error).unwrap();
+
+    sqlx::query(
+        "INSERT INTO events (work_id, current_state)
+        VALUES (?, 1)",
+    )
+    .bind(id)
+    .execute(&appstate.pool)
+    .await
+    .map_err(internal_error)
+    .map(|_| ())
+}

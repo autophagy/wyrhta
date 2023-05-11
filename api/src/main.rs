@@ -19,7 +19,7 @@ use handlers::clay::clays;
 use handlers::event::events;
 use handlers::image::upload_image_to_s3;
 use handlers::project::{post_project, project, projects, put_project, works as project_works};
-use handlers::work::{events as work_events, put_state, put_work, work, works};
+use handlers::work::{events as work_events, post_work, put_state, put_work, work, works};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -77,7 +77,7 @@ async fn main() {
         .route("/projects/:id", get(project).put(put_project))
         .route("/projects/:id/works", get(project_works))
         .route("/events", get(events))
-        .route("/works", get(works))
+        .route("/works", get(works).post(post_work))
         .route("/works/:id", get(work).put(put_work))
         .route("/works/:id/events", get(work_events))
         .route("/works/:id/state", put(put_state))
