@@ -5,6 +5,8 @@ import Api.Clay exposing (Clay, getClays)
 import Api.Project exposing (Project, getProjects)
 import Api.Upload exposing (upload)
 import Api.Work exposing (postWork)
+import Dict
+import Effect exposing (Effect)
 import File exposing (File)
 import File.Select as Select
 import Html exposing (Html)
@@ -12,12 +14,15 @@ import Html.Attributes as A
 import Html.Events as E
 import Http
 import Page exposing (Page)
+import Route exposing (Route)
+import Route.Path
+import Shared
 import View exposing (View)
 
 
-page : Page Model Msg
-page =
-    Page.element
+page : Shared.Model -> Route () -> Page Model Msg
+page _ _ =
+    Page.new
         { init = init
         , update = update
         , subscriptions = subscriptions
@@ -43,8 +48,8 @@ type alias Model =
     }
 
 
-init : ( Model, Cmd Msg )
-init =
+init : () -> ( Model, Effect Msg )
+init () =
     ( { projectData = Api.Loading
       , clayData = Api.Loading
       , projectId = 0
@@ -56,9 +61,9 @@ init =
       , thumbnail = Nothing
       , header = Nothing
       }
-    , Cmd.batch
-        [ getProjects { onResponse = ApiRespondedProjects }
-        , getClays { onResponse = ApiRespondedClays }
+    , Effect.batch
+        [ Effect.sendCmd <| getProjects { onResponse = ApiRespondedProjects }
+        , Effect.sendCmd <| getClays { onResponse = ApiRespondedClays }
         ]
     )
 
@@ -82,30 +87,30 @@ type Msg
     | SelectedHeader File
     | UploadedNewHeader (Result Http.Error String)
     | CreateWork
-    | ApiResponededCreateWork (Result Http.Error ())
+    | ApiResponededCreateWork (Result Http.Error Int)
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         ApiRespondedProjects (Ok projects) ->
             ( { model | projectData = Api.Success projects, projectId = Maybe.withDefault 0 <| Maybe.map .id <| List.head projects }
-            , Cmd.none
+            , Effect.none
             )
 
         ApiRespondedClays (Ok clays) ->
             ( { model | clayData = Api.Success clays, clayId = Maybe.withDefault 0 <| Maybe.map .id <| List.head clays }
-            , Cmd.none
+            , Effect.none
             )
 
         ProjectIdUpdated id ->
             ( { model | projectId = Maybe.withDefault 0 <| String.toInt id }
-            , Cmd.none
+            , Effect.none
             )
 
         NameUpdated name ->
             ( { model | name = name }
-            , Cmd.none
+            , Effect.none
             )
 
         NotesUpdated n ->
@@ -118,11 +123,11 @@ update msg model =
                         str ->
                             Just str
             in
-            ( { model | notes = notes }, Cmd.none )
+            ( { model | notes = notes }, Effect.none )
 
         ClayIdUpdated id ->
             ( { model | clayId = Maybe.withDefault 0 <| String.toInt id }
-            , Cmd.none
+            , Effect.none
             )
 
         GlazeDescriptionUpdated d ->
@@ -136,37 +141,39 @@ update msg model =
                             Just str
             in
             ( { model | glazeDescription = desc }
-            , Cmd.none
+            , Effect.none
             )
 
         SelectNewHeaderUpload ->
-            ( model, Select.file [ "image/*" ] SelectedHeader )
+            ( model, Effect.sendCmd <| Select.file [ "image/*" ] SelectedHeader )
 
         SelectedHeader image ->
-            ( model, upload image "works/headers" { onResponse = UploadedNewHeader } )
+            ( model, Effect.sendCmd <| upload image "works/headers" { onResponse = UploadedNewHeader } )
 
         UploadedNewHeader (Ok url) ->
-            ( { model | header = Just url }, Cmd.none )
+            ( { model | header = Just url }, Effect.none )
 
         SelectNewThumbnailUpload ->
-            ( model, Select.file [ "image/*" ] SelectedThumbnail )
+            ( model, Effect.sendCmd <| Select.file [ "image/*" ] SelectedThumbnail )
 
         SelectedThumbnail image ->
-            ( model, upload image "works/thumbnails" { onResponse = UploadedNewThumbnail } )
+            ( model, Effect.sendCmd <| upload image "works/thumbnails" { onResponse = UploadedNewThumbnail } )
 
         UploadedNewThumbnail (Ok url) ->
-            ( { model | thumbnail = Just url }, Cmd.none )
+            ( { model | thumbnail = Just url }, Effect.none )
 
         CreateWork ->
             ( { model | updateState = Just Api.Loading }
-            , postWork { project_id = model.projectId, name = model.name, notes = model.notes, clay_id = model.clayId, glaze_description = model.glazeDescription, thumbnail = model.thumbnail, header = model.header } { onResponse = ApiResponededCreateWork }
+            , Effect.sendCmd <| postWork { project_id = model.projectId, name = model.name, notes = model.notes, clay_id = model.clayId, glaze_description = model.glazeDescription, thumbnail = model.thumbnail, header = model.header } { onResponse = ApiResponededCreateWork }
             )
 
-        ApiResponededCreateWork (Ok ()) ->
-            ( { model | updateState = Just <| Api.Success () }, Cmd.none )
+        ApiResponededCreateWork (Ok id) ->
+            ( { model | updateState = Just <| Api.Success () }
+            , Effect.pushRoute { path = Route.Path.Works_Id_ { id = String.fromInt id }, query = Dict.empty, hash = Nothing }
+            )
 
         _ ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
 
 

@@ -107,14 +107,14 @@ putProject id project options =
         }
 
 
-postProject : UpdateProject -> { onResponse : Result Http.Error () -> msg } -> Cmd msg
+postProject : UpdateProject -> { onResponse : Result Http.Error Int -> msg } -> Cmd msg
 postProject project options =
     Http.request
         { method = "POST"
         , headers = []
         , url = " http://localhost:8000/projects"
         , body = Http.jsonBody <| projectEncoder project
-        , expect = Http.expectWhatever options.onResponse
+        , expect = Http.expectJson options.onResponse int
         , timeout = Nothing
         , tracker = Nothing
         }

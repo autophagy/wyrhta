@@ -1,8 +1,10 @@
 module Pages.Projects.Create exposing (Model, Msg, page)
 
 import Api
-import Api.Project exposing (Project, UpdateProject, getProject, postProject, putProject)
+import Api.Project exposing (postProject)
 import Api.Upload exposing (upload)
+import Dict
+import Effect exposing (Effect)
 import File exposing (File)
 import File.Select as Select
 import Html exposing (Html)
@@ -10,12 +12,15 @@ import Html.Attributes as A
 import Html.Events as E
 import Http
 import Page exposing (Page)
+import Route exposing (Route)
+import Route.Path
+import Shared
 import View exposing (View)
 
 
-page : Page Model Msg
-page =
-    Page.element
+page : Shared.Model -> Route () -> Page Model Msg
+page _ _ =
+    Page.new
         { init = init
         , update = update
         , subscriptions = subscriptions
@@ -35,10 +40,10 @@ type alias Model =
     }
 
 
-init : ( Model, Cmd Msg )
-init =
+init : () -> ( Model, Effect Msg )
+init () =
     ( { projectName = "", projectDescription = Nothing, projectThumbnail = Nothing, createState = Nothing }
-    , Cmd.none
+    , Effect.none
     )
 
 
@@ -53,14 +58,14 @@ type Msg
     | SelectedThumbnail File
     | UploadedNewThumbnail (Result Http.Error String)
     | CreateProject
-    | ApiRespondedCreateProject (Result Http.Error ())
+    | ApiRespondedCreateProject (Result Http.Error Int)
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         ProjectNameUpdated s ->
-            ( { model | projectName = s }, Cmd.none )
+            ( { model | projectName = s }, Effect.none )
 
         ProjectDescriptionUpdated s ->
             let
@@ -72,25 +77,27 @@ update msg model =
                         str ->
                             Just str
             in
-            ( { model | projectDescription = description }, Cmd.none )
+            ( { model | projectDescription = description }, Effect.none )
 
         CreateProject ->
-            ( { model | createState = Just Api.Loading }, postProject { name = model.projectName, description = model.projectDescription, thumbnail = model.projectThumbnail } { onResponse = ApiRespondedCreateProject } )
+            ( { model | createState = Just Api.Loading }, Effect.sendCmd <| postProject { name = model.projectName, description = model.projectDescription, thumbnail = model.projectThumbnail } { onResponse = ApiRespondedCreateProject } )
 
-        ApiRespondedCreateProject (Ok ()) ->
-            ( { model | createState = Just <| Api.Success () }, Cmd.none )
+        ApiRespondedCreateProject (Ok id) ->
+            ( { model | createState = Just <| Api.Success () }
+            , Effect.pushRoute { path = Route.Path.Projects_Id_ { id = String.fromInt id }, query = Dict.empty, hash = Nothing }
+            )
 
         SelectdNewThumbnailUpload ->
-            ( model, Select.file [ "image/*" ] SelectedThumbnail )
+            ( model, Effect.sendCmd <| Select.file [ "image/*" ] SelectedThumbnail )
 
         SelectedThumbnail image ->
-            ( model, upload image "projects/thumbnails" { onResponse = UploadedNewThumbnail } )
+            ( model, Effect.sendCmd <| upload image "projects/thumbnails" { onResponse = UploadedNewThumbnail } )
 
         UploadedNewThumbnail (Ok url) ->
-            ( { model | projectThumbnail = Just url }, Cmd.none )
+            ( { model | projectThumbnail = Just url }, Effect.none )
 
         _ ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
 
 

@@ -130,14 +130,14 @@ putWork id project options =
         }
 
 
-postWork : UpdateWork -> { onResponse : Result Http.Error () -> msg } -> Cmd msg
+postWork : UpdateWork -> { onResponse : Result Http.Error Int -> msg } -> Cmd msg
 postWork project options =
     Http.request
         { method = "POST"
         , headers = []
         , url = "http://localhost:8000/works"
         , body = Http.jsonBody <| workEncoder project
-        , expect = Http.expectWhatever options.onResponse
+        , expect = Http.expectJson options.onResponse int
         , timeout = Nothing
         , tracker = Nothing
         }
