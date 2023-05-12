@@ -1,54 +1,58 @@
+use aws_sdk_s3::Error as S3Error;
 use axum::{http::StatusCode, response::IntoResponse, Json};
-use serde::Serialize;
 use serde_json::json;
-use std::error::Error;
 use tracing::{event, Level};
 
 #[derive(Debug)]
-pub(crate) enum WyrhtaError {
-    InternalServerError,
+pub(crate) enum Error {
+    InternalServer,
     ResourceNotFound,
-    ImageUploadError,
+    ImageUpload,
     InvalidStateTransition,
+    Sqlx(sqlx::Error),
+    S3(S3Error),
 }
 
-pub(crate) struct OptionalResult<T, E>(pub Result<Option<T>, E>);
-
-impl<T, E> From<Result<Option<T>, E>> for OptionalResult<T, E> {
-    fn from(result: Result<Option<T>, E>) -> Self {
-        OptionalResult(result)
+impl From<sqlx::Error> for Error {
+    fn from(e: sqlx::Error) -> Self {
+        Error::Sqlx(e)
     }
 }
 
-impl IntoResponse for WyrhtaError {
+impl From<S3Error> for Error {
+    fn from(e: S3Error) -> Self {
+        Error::S3(e)
+    }
+}
+
+impl IntoResponse for Error {
     fn into_response(self) -> axum::response::Response {
+        let internal_error = (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "an internal server error has occured",
+        );
         let (status, msg) = match self {
-            Self::InternalServerError => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "an internal server error has occured",
-            ),
+            Self::InternalServer => internal_error,
             Self::ResourceNotFound => (StatusCode::NOT_FOUND, "resource not found"),
-            Self::ImageUploadError => (StatusCode::INTERNAL_SERVER_ERROR, "failed to upload image"),
+            Self::ImageUpload => (StatusCode::INTERNAL_SERVER_ERROR, "failed to upload image"),
             Self::InvalidStateTransition => (StatusCode::BAD_REQUEST, "invalid state transition"),
+            Self::Sqlx(e) => {
+                event!(Level::ERROR, source = "Sqlx", err = ?e);
+                internal_error
+            }
+            Self::S3(e) => {
+                event!(Level::ERROR, source = "S3", err = ?e);
+                internal_error
+            }
         };
         (status, Json(json!({ "error": msg }))).into_response()
     }
 }
 
-pub(crate) fn internal_error<E>(err: E) -> WyrhtaError
+pub(crate) fn internal_error<E>(err: E) -> Error
 where
     E: std::error::Error,
 {
     event!(Level::ERROR, error = ?err);
-    WyrhtaError::InternalServerError
-}
-
-impl<T: Serialize, E: Error> IntoResponse for OptionalResult<T, E> {
-    fn into_response(self) -> axum::response::Response {
-        match self.0 {
-            Ok(Some(value)) => Json(value).into_response(),
-            Ok(None) => WyrhtaError::ResourceNotFound.into_response(),
-            Err(err) => internal_error(err).into_response(),
-        }
-    }
+    Error::InternalServer
 }

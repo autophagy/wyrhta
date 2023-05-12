@@ -1,13 +1,9 @@
-use axum::response::IntoResponse;
-use axum::{
-    extract::{Json as ExtractJson, Path, State},
-    Json,
-};
+use axum::extract::{Json as ExtractJson, Path, State};
 use chrono::NaiveDateTime;
 
-use crate::error::{internal_error, OptionalResult};
 use crate::handlers::work::{workdto_to_work, WorkDTO, WORK_DTO_QUERY};
 use crate::models::{Images, Project, PutProject, Work};
+use crate::result::{EmptyResult, JsonResult, OptionalResult};
 use crate::AppState;
 
 static PROJECT_DTO_QUERY: &str = "
@@ -44,7 +40,7 @@ fn projectdto_to_project(projectdto: ProjectDTO, appstate: &AppState) -> Project
     }
 }
 
-pub(crate) async fn projects(State(appstate): State<AppState>) -> impl IntoResponse {
+pub(crate) async fn projects(State(appstate): State<AppState>) -> JsonResult<Vec<Project>> {
     sqlx::query_as::<_, ProjectDTO>(PROJECT_DTO_QUERY)
         .fetch_all(&appstate.pool)
         .await
@@ -54,14 +50,13 @@ pub(crate) async fn projects(State(appstate): State<AppState>) -> impl IntoRespo
                 .map(|p| projectdto_to_project(p, &appstate))
                 .collect::<Vec<Project>>()
         })
-        .map(Json)
-        .map_err(internal_error)
+        .into()
 }
 
 pub(crate) async fn project(
     Path(id): Path<i32>,
     State(appstate): State<AppState>,
-) -> OptionalResult<Project, sqlx::Error> {
+) -> OptionalResult<Project> {
     sqlx::query_as::<_, ProjectDTO>(&format!("{} {}", PROJECT_DTO_QUERY, "WHERE id = ?"))
         .bind(id)
         .fetch_optional(&appstate.pool)
@@ -74,7 +69,7 @@ pub(crate) async fn put_project(
     Path(id): Path<i32>,
     State(appstate): State<AppState>,
     ExtractJson(data): ExtractJson<PutProject>,
-) -> impl IntoResponse {
+) -> EmptyResult {
     let thumbnail_key = data.thumbnail.as_ref().map(|key| {
         key.strip_prefix(&format!("{}/", &appstate.config.images_url))
             .unwrap_or(key)
@@ -88,37 +83,36 @@ pub(crate) async fn put_project(
         .bind(id)
         .execute(&appstate.pool)
         .await
-        .map(|_| ())
-        .map_err(internal_error)
+        .into()
 }
 
 pub(crate) async fn post_project(
     State(appstate): State<AppState>,
     ExtractJson(data): ExtractJson<PutProject>,
-) -> impl IntoResponse {
+) -> JsonResult<i32> {
     let thumbnail_key = data.thumbnail.as_ref().map(|key| {
         key.strip_prefix(&format!("{}/", &appstate.config.images_url))
             .unwrap_or(key)
             .to_owned()
     });
 
-    sqlx::query(
+    sqlx::query_scalar(
         "INSERT INTO projects (name, description, thumbnail_key)
-        VALUES (?, ?, ?)",
+        VALUES (?, ?, ?)
+        RETURNING id",
     )
     .bind(data.name)
     .bind(data.description)
     .bind(thumbnail_key)
-    .execute(&appstate.pool)
+    .fetch_one(&appstate.pool)
     .await
-    .map(|_| ())
-    .map_err(internal_error)
+    .into()
 }
 
 pub(crate) async fn works(
     Path(id): Path<i32>,
     State(appstate): State<AppState>,
-) -> impl IntoResponse {
+) -> JsonResult<Vec<Work>> {
     sqlx::query_as::<_, WorkDTO>(&format!("{} {}", WORK_DTO_QUERY, "WHERE w.project_id = ?"))
         .bind(id)
         .fetch_all(&appstate.pool)
@@ -129,8 +123,7 @@ pub(crate) async fn works(
                 .map(|w| workdto_to_work(w, &appstate))
                 .collect::<Vec<Work>>()
         })
-        .map(Json)
-        .map_err(internal_error)
+        .into()
 }
 
 // DELETE
@@ -138,11 +131,10 @@ pub(crate) async fn works(
 pub(crate) async fn delete_project(
     Path(id): Path<i32>,
     State(appstate): State<AppState>,
-) -> impl IntoResponse {
+) -> EmptyResult {
     sqlx::query("DELETE FROM projects WHERE id = ?")
         .bind(id)
         .execute(&appstate.pool)
         .await
-        .map(|_| ())
-        .map_err(internal_error)
+        .into()
 }

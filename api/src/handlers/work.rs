@@ -1,16 +1,14 @@
+use axum::extract::{Json as ExtractJson, Path, State};
 use axum::response::IntoResponse;
-use axum::{
-    extract::{Json as ExtractJson, Path, State},
-    Json,
-};
 use chrono::NaiveDateTime;
 use serde::Serialize;
 
-use crate::error::{internal_error, OptionalResult, WyrhtaError};
+use crate::error::{internal_error, Error};
 use crate::models::{
     is_valid_transition, ApiResource, Clay, CurrentState, Event, Images, PutWork,
     State as WorkState, Work,
 };
+use crate::result::{EmptyResult, JsonResult, OptionalResult};
 use crate::AppState;
 
 pub(crate) static WORK_DTO_QUERY: &str = "
@@ -80,7 +78,7 @@ pub(crate) fn workdto_to_work(workdto: WorkDTO, appstate: &AppState) -> Work {
     }
 }
 
-pub(crate) async fn works(State(appstate): State<AppState>) -> impl IntoResponse {
+pub(crate) async fn works(State(appstate): State<AppState>) -> JsonResult<Vec<Work>> {
     sqlx::query_as::<_, WorkDTO>(WORK_DTO_QUERY)
         .fetch_all(&appstate.pool)
         .await
@@ -90,14 +88,13 @@ pub(crate) async fn works(State(appstate): State<AppState>) -> impl IntoResponse
                 .map(|w| workdto_to_work(w, &appstate))
                 .collect::<Vec<Work>>()
         })
-        .map(Json)
-        .map_err(internal_error)
+        .into()
 }
 
 pub(crate) async fn work(
     Path(id): Path<i32>,
     State(appstate): State<AppState>,
-) -> OptionalResult<Work, sqlx::Error> {
+) -> OptionalResult<Work> {
     sqlx::query_as::<_, WorkDTO>(&format!("{} {}", WORK_DTO_QUERY, "WHERE w.id = ?"))
         .bind(id)
         .fetch_optional(&appstate.pool)
@@ -130,7 +127,7 @@ impl From<EventDTO> for Event {
 pub(crate) async fn events(
     Path(id): Path<i32>,
     State(appstate): State<AppState>,
-) -> impl IntoResponse {
+) -> JsonResult<Vec<Event>> {
     sqlx::query_as::<_, EventDTO>(
         "SELECT e.id, e.work_id, s1.id AS previous_state_id,
         s2.id AS current_state_id, e.created_at
@@ -143,8 +140,7 @@ pub(crate) async fn events(
     .fetch_all(&appstate.pool)
     .await
     .map(|events| events.into_iter().map(Event::from).collect::<Vec<Event>>())
-    .map(Json)
-    .map_err(internal_error)
+    .into()
 }
 
 // PUT
@@ -153,7 +149,7 @@ pub(crate) async fn put_work(
     Path(id): Path<i32>,
     State(appstate): State<AppState>,
     ExtractJson(data): ExtractJson<PutWork>,
-) -> impl IntoResponse {
+) -> EmptyResult {
     let thumbnail_key = data.thumbnail.as_ref().map(|key| {
         key.strip_prefix(&format!("{}/", &appstate.config.images_url))
             .unwrap_or(key)
@@ -182,8 +178,7 @@ pub(crate) async fn put_work(
     .bind(id)
     .execute(&appstate.pool)
     .await
-    .map(|_| ())
-    .map_err(internal_error)
+    .into()
 }
 
 pub(crate) async fn put_state(
@@ -220,43 +215,32 @@ pub(crate) async fn put_state(
         .map(|_| ())
         .map_err(internal_error)
     } else {
-        Err(WyrhtaError::InvalidStateTransition)
+        Err(Error::InvalidStateTransition)
     }
 }
 
 // POST
 
-pub(crate) async fn post_work(
-    State(appstate): State<AppState>,
-    ExtractJson(data): ExtractJson<PutWork>,
-) -> Result<impl IntoResponse, impl IntoResponse> {
-    let thumbnail_key = data.thumbnail.as_ref().map(|key| {
-        key.strip_prefix(&format!("{}/", &appstate.config.images_url))
-            .unwrap_or(key)
-            .to_owned()
-    });
-
-    let header_key = data.header.as_ref().map(|key| {
-        key.strip_prefix(&format!("{}/", &appstate.config.images_url))
-            .unwrap_or(key)
-            .to_owned()
-    });
-
+async fn insert_work(
+    appstate: &AppState,
+    put_work: &PutWork,
+    thumbnail_key: &Option<&str>,
+    header_key: &Option<&str>,
+) -> Result<i32, sqlx::Error> {
     let id = sqlx::query_scalar::<_, i32>(
         "INSERT INTO works (project_id, name, notes, clay_id, glaze_description, header_key, thumbnail_key)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         RETURNING id"
     )
-    .bind(data.project_id)
-    .bind(data.name)
-    .bind(data.notes)
-    .bind(data.clay_id)
-    .bind(data.glaze_description)
+    .bind(put_work.project_id)
+    .bind(&put_work.name)
+    .bind(&put_work.notes)
+    .bind(put_work.clay_id)
+    .bind(&put_work.glaze_description)
     .bind(header_key)
     .bind(thumbnail_key)
     .fetch_one(&appstate.pool)
-    .await
-    .map_err(internal_error)?;
+    .await?;
 
     sqlx::query(
         "INSERT INTO events (work_id, current_state)
@@ -264,28 +248,49 @@ pub(crate) async fn post_work(
     )
     .bind(id)
     .execute(&appstate.pool)
-    .await
-    .map_err(internal_error)
-    .map(|_| ())
+    .await?;
+
+    Ok(id)
+}
+
+pub(crate) async fn post_work(
+    State(appstate): State<AppState>,
+    ExtractJson(data): ExtractJson<PutWork>,
+) -> JsonResult<i32> {
+    let thumbnail_key = data.thumbnail.as_ref().map(|key| {
+        key.strip_prefix(&format!("{}/", &appstate.config.images_url))
+            .unwrap_or(key)
+    });
+
+    let header_key = data.header.as_ref().map(|key| {
+        key.strip_prefix(&format!("{}/", &appstate.config.images_url))
+            .unwrap_or(key)
+    });
+
+    insert_work(&appstate, &data, &thumbnail_key, &header_key)
+        .await
+        .into()
 }
 
 // DELETE
 
-pub(crate) async fn delete_work(
-    Path(id): Path<i32>,
-    State(appstate): State<AppState>,
-) -> Result<impl IntoResponse, impl IntoResponse> {
+async fn delete_work_and_events(appstate: &AppState, id: &i32) -> Result<(), sqlx::Error> {
     sqlx::query("DELETE FROM events WHERE work_id = ?")
         .bind(id)
         .execute(&appstate.pool)
-        .await
-        .map(|_| ())
-        .map_err(internal_error)?;
+        .await?;
 
     sqlx::query("DELETE FROM works WHERE id = ?")
         .bind(id)
         .execute(&appstate.pool)
-        .await
-        .map(|_| ())
-        .map_err(internal_error)
+        .await?;
+
+    Ok(())
+}
+
+pub(crate) async fn delete_work(
+    Path(id): Path<i32>,
+    State(appstate): State<AppState>,
+) -> EmptyResult {
+    delete_work_and_events(&appstate, &id).await.into()
 }

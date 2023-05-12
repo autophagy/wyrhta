@@ -1,6 +1,7 @@
 mod error;
 mod handlers;
 mod models;
+mod result;
 
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::{config::Region, Client};
@@ -10,7 +11,6 @@ use axum::{
 };
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePool, SqlitePoolOptions};
 use std::net::SocketAddr;
-use tower_http::classify::StatusInRangeAsFailures;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::{self, TraceLayer};
 use tracing::Level;
@@ -92,7 +92,7 @@ async fn main() {
         .route("/upload", post(upload_image_to_s3))
         .layer(cors)
         .layer(
-            TraceLayer::new(StatusInRangeAsFailures::new(400..=599).into_make_classifier())
+            TraceLayer::new_for_http()
                 .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
                 .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
         )

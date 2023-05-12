@@ -1,13 +1,9 @@
-use axum::response::IntoResponse;
-use axum::{
-    extract::{Query, State},
-    Json,
-};
+use axum::extract::{Query, State};
 use chrono::NaiveDateTime;
 use serde::Deserialize;
 
-use crate::error::internal_error;
 use crate::models::{ApiResource, Event, State as WorkState};
+use crate::result::JsonResult;
 use crate::AppState;
 
 #[derive(sqlx::FromRow)]
@@ -39,7 +35,7 @@ pub struct Limit {
 pub(crate) async fn events(
     State(appstate): State<AppState>,
     Query(limit): Query<Limit>,
-) -> impl IntoResponse {
+) -> JsonResult<Vec<Event>> {
     let mut query_string = String::from(
         "SELECT e.id, e.work_id, s1.id AS previous_state_id,
         s2.id AS current_state_id, e.created_at
@@ -60,6 +56,5 @@ pub(crate) async fn events(
         .fetch_all(&appstate.pool)
         .await
         .map(|events| events.into_iter().map(Event::from).collect::<Vec<Event>>())
-        .map(Json)
-        .map_err(internal_error)
+        .into()
 }

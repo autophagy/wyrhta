@@ -1,8 +1,7 @@
-use axum::response::IntoResponse;
-use axum::{extract::State, Json};
+use axum::extract::State;
 
-use crate::error::internal_error;
 use crate::models::Clay;
+use crate::result::JsonResult;
 use crate::AppState;
 
 #[derive(sqlx::FromRow)]
@@ -24,7 +23,7 @@ impl From<ClayDTO> for Clay {
     }
 }
 
-pub(crate) async fn clays(State(appstate): State<AppState>) -> impl IntoResponse {
+pub(crate) async fn clays(State(appstate): State<AppState>) -> JsonResult<Vec<Clay>> {
     sqlx::query_as::<_, ClayDTO>(
         "SELECT id, name, description, shrinkage
         FROM clays",
@@ -32,6 +31,5 @@ pub(crate) async fn clays(State(appstate): State<AppState>) -> impl IntoResponse
     .fetch_all(&appstate.pool)
     .await
     .map(|clays| clays.into_iter().map(Clay::from).collect::<Vec<Clay>>())
-    .map(Json)
-    .map_err(internal_error)
+    .into()
 }
