@@ -1,5 +1,6 @@
 module Api.State exposing (State(..), enumState, isTerminalState, putState, stateDecoder, stateToString)
 
+import Api exposing (Route(..))
 import Http
 import Json.Decode exposing (Decoder, andThen, string, succeed)
 import Json.Encode as Encode
@@ -121,12 +122,8 @@ stateEncoder s =
 
 putState : Int -> State -> { onResponse : Result Http.Error () -> msg } -> Cmd msg
 putState id state options =
-    Http.request
-        { method = "PUT"
-        , headers = []
-        , url = " http://localhost:8000/works/" ++ String.fromInt id ++ "/state"
+    Api.put
+        { route = [ Works, Id id, State ]
         , body = Http.jsonBody <| stateEncoder state
         , expect = Http.expectWhatever options.onResponse
-        , timeout = Nothing
-        , tracker = Nothing
         }

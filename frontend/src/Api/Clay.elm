@@ -1,5 +1,6 @@
 module Api.Clay exposing (Clay, clayDecoder, getClays)
 
+import Api exposing (Route(..))
 import Http
 import Json.Decode exposing (Decoder, field, float, int, map4, maybe, string)
 
@@ -14,8 +15,8 @@ type alias Clay =
 
 getClays : { onResponse : Result Http.Error (List Clay) -> msg } -> Cmd msg
 getClays options =
-    Http.get
-        { url = "http://localhost:8000/clays"
+    Api.get
+        { route = [ Clays ]
         , expect = Http.expectJson options.onResponse (Json.Decode.list clayDecoder)
         }
 

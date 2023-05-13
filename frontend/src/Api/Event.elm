@@ -1,6 +1,6 @@
 module Api.Event exposing (Event, compareEvent, eventsDecoder, getEvents, getEventsWithLimit)
 
-import Api exposing (ApiResource, apiResourceDecoder)
+import Api exposing (ApiResource, Route(..), apiResourceDecoder)
 import Api.State exposing (State, stateDecoder)
 import Http
 import Json.Decode exposing (Decoder, field, int, map5, maybe)
@@ -25,16 +25,16 @@ compareEvent a b =
 
 getEvents : { onResponse : Result Http.Error (List Event) -> msg } -> Cmd msg
 getEvents options =
-    Http.get
-        { url = "http://localhost:8000/events"
+    Api.get
+        { route = [ Events ]
         , expect = Http.expectJson options.onResponse eventsDecoder
         }
 
 
 getEventsWithLimit : Int -> { onResponse : Result Http.Error (List Event) -> msg } -> Cmd msg
 getEventsWithLimit limit options =
-    Http.get
-        { url = "http://localhost:8000/events?limit=" ++ String.fromInt limit
+    Api.get
+        { route = [ EventsWithLimit limit ]
         , expect = Http.expectJson options.onResponse eventsDecoder
         }
 
