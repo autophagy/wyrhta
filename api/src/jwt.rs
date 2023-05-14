@@ -20,7 +20,6 @@ pub async fn auth<B>(
     req: Request<B>,
     next: Next<B>,
 ) -> Result<impl IntoResponse, Error> {
-    println!("{:#?}", cookie_jar);
     let token = cookie_jar
         .get("token")
         .map(|cookie| cookie.value().to_string());

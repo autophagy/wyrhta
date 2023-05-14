@@ -42,7 +42,7 @@ pub async fn login(
     let cookie = Cookie::build("token", token)
         .path("/")
         .max_age(time::Duration::hours(1))
-        .same_site(SameSite::Lax)
+        .same_site(SameSite::Strict)
         .http_only(true)
         .finish();
 
