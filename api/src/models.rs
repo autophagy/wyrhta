@@ -144,6 +144,17 @@ pub(crate) struct Event {
     pub(crate) created_at: NaiveDateTime,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenClaims {
+    pub iat: usize,
+    pub exp: usize,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LoginUser {
+    pub password: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

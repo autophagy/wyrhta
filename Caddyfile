@@ -1,0 +1,11 @@
+http://localhost:8080 {
+    route /api* {
+        uri strip_prefix /api
+        reverse_proxy localhost:8000
+    }
+
+    route {
+        reverse_proxy localhost:1234
+    }
+}
+

@@ -1,3 +1,4 @@
+pub mod auth;
 pub mod clay;
 pub mod event;
 pub mod image;

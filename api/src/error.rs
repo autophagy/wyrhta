@@ -4,13 +4,16 @@ use serde_json::json;
 use tracing::{event, Level};
 
 #[derive(Debug)]
-pub(crate) enum Error {
+pub enum Error {
     InternalServer,
     ResourceNotFound,
     ImageUpload,
     InvalidStateTransition,
     Sqlx(sqlx::Error),
     S3(S3Error),
+    InvalidPassword,
+    NotLoggedIn,
+    InvalidJWT,
 }
 
 impl From<sqlx::Error> for Error {
@@ -43,6 +46,21 @@ impl IntoResponse for Error {
             Self::S3(e) => {
                 event!(Level::ERROR, source = "S3", err = ?e);
                 internal_error
+            }
+            Self::InvalidPassword => {
+                event!(Level::WARN, source = "Authentication: Invalid password");
+                (StatusCode::BAD_REQUEST, "invalid password")
+            }
+            Self::NotLoggedIn => {
+                event!(
+                    Level::WARN,
+                    source = "Authentication: Request made while not logged in"
+                );
+                (StatusCode::UNAUTHORIZED, "yous are not logged in mate")
+            }
+            Self::InvalidJWT => {
+                event!(Level::WARN, source = "Authentication: Invalid JWT token");
+                (StatusCode::UNAUTHORIZED, "invalid token")
             }
         };
         (status, Json(json!({ "error": msg }))).into_response()
