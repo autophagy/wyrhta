@@ -81,7 +81,7 @@ request r =
     Http.request
         { method = r.method
         , headers = r.headers
-        , url = String.join "/" <| "http://localhost:8000" :: List.map routeToString r.route
+        , url = String.join "/" <| "http://localhost:8080/api" :: List.map routeToString r.route
         , body = r.body
         , expect = r.expect
         , timeout = r.timeout
@@ -149,7 +149,7 @@ delete :
     -> Cmd msg
 delete r =
     request
-        { method = "PUT"
+        { method = "DELETE"
         , headers = []
         , route = r.route
         , body = Http.emptyBody
