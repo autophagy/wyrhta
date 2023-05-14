@@ -19,6 +19,7 @@ type Route
     | Clays
     | Upload
     | Id Int
+    | Login
 
 
 routeToString : Route -> String
@@ -47,6 +48,9 @@ routeToString route =
 
         Id i ->
             String.fromInt i
+
+        Login ->
+            "login"
 
 
 apiResourceDecoder : Decoder ApiResource
