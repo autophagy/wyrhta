@@ -5,6 +5,7 @@ import Api.Clay exposing (Clay, getClays)
 import Api.Project exposing (Project, getProjects)
 import Api.Upload exposing (upload)
 import Api.Work exposing (postWork)
+import Auth
 import Dict
 import Effect exposing (Effect)
 import File exposing (File)
@@ -20,8 +21,8 @@ import Shared
 import View exposing (View)
 
 
-page : Shared.Model -> Route () -> Page Model Msg
-page _ _ =
+page : Auth.User -> Shared.Model -> Route () -> Page Model Msg
+page _ _ _ =
     Page.new
         { init = init
         , update = update

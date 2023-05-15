@@ -3,6 +3,7 @@ module Pages.Projects.Id_.Edit exposing (Model, Msg, page)
 import Api
 import Api.Project exposing (Project, UpdateProject, getProject, putProject)
 import Api.Upload exposing (upload)
+import Auth
 import Dict
 import Effect exposing (Effect)
 import File exposing (File)
@@ -18,8 +19,8 @@ import Shared
 import View exposing (View)
 
 
-page : Shared.Model -> Route { id : String } -> Page Model Msg
-page _ route =
+page : Auth.User -> Shared.Model -> Route { id : String } -> Page Model Msg
+page _ _ route =
     Page.new
         { init = init route.params.id
         , update = update

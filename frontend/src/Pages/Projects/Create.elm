@@ -3,6 +3,7 @@ module Pages.Projects.Create exposing (Model, Msg, page)
 import Api
 import Api.Project exposing (postProject)
 import Api.Upload exposing (upload)
+import Auth
 import Dict
 import Effect exposing (Effect)
 import File exposing (File)
@@ -18,8 +19,8 @@ import Shared
 import View exposing (View)
 
 
-page : Shared.Model -> Route () -> Page Model Msg
-page _ _ =
+page : Auth.User -> Shared.Model -> Route () -> Page Model Msg
+page _ _ _ =
     Page.new
         { init = init
         , update = update

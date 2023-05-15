@@ -3,18 +3,22 @@ module Pages.Works.Id_.State exposing (Model, Msg, page)
 import Api
 import Api.State exposing (State(..), enumState, putState, stateToString)
 import Api.Work exposing (Work, getWork)
+import Auth
+import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes as A
 import Html.Events as E
 import Http
 import Page exposing (Page)
+import Route exposing (Route)
+import Shared
 import View exposing (View)
 
 
-page : { id : String } -> Page Model Msg
-page params =
-    Page.element
-        { init = init params.id
+page : Auth.User -> Shared.Model -> Route { id : String } -> Page Model Msg
+page _ _ route =
+    Page.new
+        { init = init route.params.id
         , update = update
         , subscriptions = subscriptions
         , view = view
@@ -33,8 +37,8 @@ type alias Model =
     }
 
 
-init : String -> ( Model, Cmd Msg )
-init id_ =
+init : String -> () -> ( Model, Effect Msg )
+init id_ _ =
     let
         id =
             Maybe.withDefault 0 <| String.toInt id_
@@ -44,7 +48,7 @@ init id_ =
       , current_state = Unknown
       , updateState = Nothing
       }
-    , getWork id { onResponse = ApiRespondedWork }
+    , Effect.sendCmd <| getWork id { onResponse = ApiRespondedWork }
     )
 
 
@@ -84,29 +88,29 @@ type Msg
     | ApiResponededUpdateState (Result Http.Error ())
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         ApiRespondedWork (Ok work) ->
             ( { model | workData = Api.Success work, current_state = work.current_state.state }
-            , Cmd.none
+            , Effect.none
             )
 
         StateUpdated state ->
             ( { model | current_state = stringToState state }
-            , Cmd.none
+            , Effect.none
             )
 
         UpdateState ->
             ( { model | updateState = Just Api.Loading }
-            , putState model.id model.current_state { onResponse = ApiResponededUpdateState }
+            , Effect.sendCmd <| putState model.id model.current_state { onResponse = ApiResponededUpdateState }
             )
 
         ApiResponededUpdateState (Ok ()) ->
-            ( { model | updateState = Just <| Api.Success () }, Cmd.none )
+            ( { model | updateState = Just <| Api.Success () }, Effect.none )
 
         _ ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
 
 

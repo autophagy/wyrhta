@@ -1,23 +1,23 @@
 module Pages.Projects.Id_.Delete exposing (Model, Msg, page)
 
 import Api
-import Api.Clay exposing (Clay, getClays)
-import Api.Project exposing (Project, UpdateProject, deleteProject, getProject, putProject)
-import Api.Upload exposing (upload)
-import File exposing (File)
-import File.Select as Select
+import Api.Project exposing (deleteProject)
+import Auth
+import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes as A
 import Html.Events as E
 import Http
 import Page exposing (Page)
+import Route exposing (Route)
+import Shared
 import View exposing (View)
 
 
-page : { id : String } -> Page Model Msg
-page params =
-    Page.element
-        { init = init params.id
+page : Auth.User -> Shared.Model -> Route { id : String } -> Page Model Msg
+page _ _ route =
+    Page.new
+        { init = init route.params.id
         , update = update
         , subscriptions = subscriptions
         , view = view
@@ -35,14 +35,14 @@ type alias Model =
     }
 
 
-init : String -> ( Model, Cmd Msg )
-init id_ =
+init : String -> () -> ( Model, Effect Msg )
+init id_ _ =
     let
         id =
             Maybe.withDefault 0 <| String.toInt id_
     in
     ( { id = id, checkReally = False, deleteState = Nothing }
-    , Cmd.none
+    , Effect.none
     )
 
 
@@ -56,22 +56,22 @@ type Msg
     | ApiResponededDeleteProject (Result Http.Error ())
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         DeleteProject ->
-            ( { model | checkReally = True }, Cmd.none )
+            ( { model | checkReally = True }, Effect.none )
 
         ReallyDeleteProject ->
             ( { model | deleteState = Just Api.Loading }
-            , deleteProject model.id { onResponse = ApiResponededDeleteProject }
+            , Effect.sendCmd <| deleteProject model.id { onResponse = ApiResponededDeleteProject }
             )
 
         ApiResponededDeleteProject (Ok ()) ->
-            ( { model | deleteState = Just <| Api.Success (), checkReally = False }, Cmd.none )
+            ( { model | deleteState = Just <| Api.Success (), checkReally = False }, Effect.none )
 
         _ ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
 
 
