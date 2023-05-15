@@ -20,6 +20,7 @@ type Route
     | Upload
     | Id Int
     | Login
+    | Auth
 
 
 routeToString : Route -> String
@@ -51,6 +52,9 @@ routeToString route =
 
         Login ->
             "login"
+
+        Auth ->
+            "auth"
 
 
 apiResourceDecoder : Decoder ApiResource

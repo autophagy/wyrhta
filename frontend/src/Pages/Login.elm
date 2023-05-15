@@ -1,8 +1,7 @@
 module Pages.Login exposing (Model, Msg, page)
 
-import Api
-import Api.Login exposing (login)
-import Dict exposing (Dict)
+import Api.Login exposing (auth, login)
+import Dict
 import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes as A
@@ -12,6 +11,7 @@ import Page exposing (Page)
 import Route exposing (Route)
 import Route.Path
 import Shared
+import Shared.Msg
 import View exposing (View)
 
 
@@ -61,7 +61,10 @@ update msg model =
 
         ApiRespondedLogin (Ok ()) ->
             ( model
-            , Effect.pushRoute { path = Route.Path.Home_, query = Dict.empty, hash = Nothing }
+            , Effect.batch
+                [ Effect.pushRoute { path = Route.Path.Home_, query = Dict.empty, hash = Nothing }
+                , Effect.auth
+                ]
             )
 
         ApiRespondedLogin _ ->

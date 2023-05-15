@@ -1,4 +1,4 @@
-module Api.Login exposing (login)
+module Api.Login exposing (auth, login)
 
 import Api exposing (Route(..))
 import Http
@@ -16,5 +16,13 @@ login password options =
     Api.post
         { route = [ Login ]
         , body = Http.jsonBody <| loginEncoder password
+        , expect = Http.expectWhatever options.onResponse
+        }
+
+
+auth : { onResponse : Result Http.Error () -> msg } -> Cmd msg
+auth options =
+    Api.get
+        { route = [ Auth ]
         , expect = Http.expectWhatever options.onResponse
         }
