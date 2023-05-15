@@ -4,7 +4,7 @@ use serde_json::json;
 use tracing::{event, Level};
 
 #[derive(Debug)]
-pub enum Error {
+pub(crate) enum Error {
     InternalServer,
     ResourceNotFound,
     ImageUpload,

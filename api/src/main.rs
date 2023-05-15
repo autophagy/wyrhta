@@ -16,7 +16,7 @@ use std::net::SocketAddr;
 use tower_http::trace::{self, TraceLayer};
 use tracing::Level;
 
-use handlers::auth::login;
+use handlers::auth::{auth as is_authed, login};
 use handlers::clay::clays;
 use handlers::event::events;
 use handlers::image::upload_image_to_s3;
@@ -81,8 +81,7 @@ async fn main() {
         .pretty()
         .init();
 
-    let app = Router::new()
-        // Public Routes
+    let public_routes = Router::new()
         .route("/projects", get(projects))
         .route("/projects/:id", get(project))
         .route("/projects/:id/works", get(project_works))
@@ -91,38 +90,21 @@ async fn main() {
         .route("/works/:id", get(work))
         .route("/works/:id/events", get(work_events))
         .route("/clays", get(clays))
-        .route("/login", post(login))
-        // Protected Routes
-        .route(
-            "/projects",
-            post(post_project).route_layer(middleware::from_fn_with_state(state.clone(), auth)),
-        )
-        .route(
-            "/projects/:id",
-            put(put_project)
-                .delete(delete_project)
-                .route_layer(middleware::from_fn_with_state(state.clone(), auth)),
-        )
-        .route(
-            "/works",
-            post(post_work).route_layer(middleware::from_fn_with_state(state.clone(), auth)),
-        )
-        .route(
-            "/works/:id",
-            put(put_work)
-                .delete(delete_work)
-                .route_layer(middleware::from_fn_with_state(state.clone(), auth)),
-        )
-        .route(
-            "/works/:id/state",
-            put(put_state).route_layer(middleware::from_fn_with_state(state.clone(), auth)),
-        )
-        .route(
-            "/upload",
-            post(upload_image_to_s3)
-                .route_layer(middleware::from_fn_with_state(state.clone(), auth)),
-        )
-        // Layers and State
+        .route("/login", post(login));
+
+    let protected_routes = Router::new()
+        .route("/auth", get(is_authed))
+        .route("/projects", post(post_project))
+        .route("/projects/:id", put(put_project).delete(delete_project))
+        .route("/works", post(post_work))
+        .route("/works/:id", put(put_work).delete(delete_work))
+        .route("/works/:id/state", put(put_state))
+        .route("/upload", post(upload_image_to_s3))
+        .layer(middleware::from_fn_with_state(state.clone(), auth));
+
+    let app = Router::new()
+        .merge(public_routes)
+        .merge(protected_routes)
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))

@@ -2,19 +2,12 @@ use axum::{extract::State, http::Request, middleware::Next, response::IntoRespon
 
 use axum_extra::extract::cookie::CookieJar;
 use jsonwebtoken::{decode, DecodingKey, Validation};
-use serde::Serialize;
 
 use crate::error::Error;
 use crate::models::TokenClaims;
 use crate::AppState;
 
-#[derive(Debug, Serialize)]
-pub struct ErrorResponse {
-    pub status: &'static str,
-    pub message: String,
-}
-
-pub async fn auth<B>(
+pub(crate) async fn auth<B>(
     cookie_jar: CookieJar,
     State(data): State<AppState>,
     req: Request<B>,

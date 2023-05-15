@@ -10,12 +10,13 @@ use jsonwebtoken::{encode, EncodingKey, Header};
 
 use crate::error::Error;
 use crate::models::{LoginUser, TokenClaims};
+use crate::result::EmptyResult;
 use crate::AppState;
 
-pub async fn login(
+pub(crate) async fn login(
     State(state): State<AppState>,
     Json(body): Json<LoginUser>,
-) -> Result<impl IntoResponse, impl IntoResponse> {
+) -> Result<impl IntoResponse, Error> {
     let is_valid = match PasswordHash::new(&state.config.password) {
         Ok(parsed_hash) => Argon2::default()
             .verify_password(body.password.as_bytes(), &parsed_hash)
@@ -51,4 +52,8 @@ pub async fn login(
         .headers_mut()
         .insert(header::SET_COOKIE, cookie.to_string().parse().unwrap());
     Ok(response)
+}
+
+pub(crate) async fn auth() -> EmptyResult {
+    EmptyResult(Ok(()))
 }
