@@ -4,7 +4,7 @@ module Effect exposing
     , sendCmd, sendMsg
     , pushRoute, replaceRoute, loadExternalUrl
     , map, toCmd
-    , auth
+    , auth, batchCmd
     )
 
 {-|
@@ -33,6 +33,7 @@ type Effect msg
     = -- BASICS
       None
     | Batch (List (Effect msg))
+    | BatchCmd (List (Cmd msg))
     | SendCmd (Cmd msg)
       -- ROUTING
     | PushUrl String
@@ -58,6 +59,13 @@ none =
 batch : List (Effect msg) -> Effect msg
 batch =
     Batch
+
+
+{-| Send multiple 'Cmd msg' as effects
+-}
+batchCmd : List (Cmd msg) -> Effect msg
+batchCmd =
+    BatchCmd
 
 
 {-| Send a normal `Cmd msg` as an effect, something like `Http.get` or `Random.generate`.
@@ -133,6 +141,9 @@ map fn effect =
         Batch list ->
             Batch (List.map (map fn) list)
 
+        BatchCmd list ->
+            BatchCmd (List.map (Cmd.map fn) list)
+
         SendCmd cmd ->
             SendCmd (Cmd.map fn cmd)
 
@@ -168,6 +179,9 @@ toCmd options effect =
 
         Batch list ->
             Cmd.batch (List.map (toCmd options) list)
+
+        BatchCmd list ->
+            Cmd.batch list
 
         SendCmd cmd ->
             cmd

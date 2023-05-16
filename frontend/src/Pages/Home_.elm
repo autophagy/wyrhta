@@ -7,19 +7,22 @@ import Api.State exposing (stateToString)
 import Api.Work exposing (Work, getWork)
 import Dict exposing (Dict)
 import Dict.Extra exposing (groupBy)
+import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes exposing (class)
 import Http
 import Page exposing (Page)
+import Route exposing (Route)
+import Shared
 import View exposing (View)
 import Views.LoadingPage exposing (PageState(..), viewLoadingPage)
 import Views.Posix exposing (posixToString)
 import Views.SummaryList exposing (Summary, summaryList)
 
 
-page : Page Model Msg
-page =
-    Page.element
+page : Shared.Model -> Route () -> Page Model Msg
+page _ _ =
+    Page.new
         { init = init
         , update = update
         , subscriptions = subscriptions
@@ -39,7 +42,7 @@ type alias EventWithWork =
 
 type alias Model =
     { projectData : Api.Data (List Project)
-    , eventsData : List EventWithWork
+    , eventsData : Dict Int EventWithWork
     }
 
 
@@ -53,16 +56,16 @@ modelToPageState model =
             Loading
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( { projectData = Api.Loading, eventsData = [] }
-    , Cmd.batch [ getProjects { onResponse = ApiRespondedProjects }, getEventsWithLimit 5 { onResponse = ApiRespondedEvents } ]
+init : () -> ( Model, Effect Msg )
+init _ =
+    ( { projectData = Api.Loading, eventsData = Dict.empty }
+    , Effect.batchCmd [ getProjects { onResponse = ApiRespondedProjects }, getEventsWithLimit 5 { onResponse = ApiRespondedEvents } ]
     )
 
 
-groupEvents : List EventWithWork -> Dict String (List EventWithWork)
+groupEvents : Dict Int EventWithWork -> Dict String (List EventWithWork)
 groupEvents events =
-    groupBy (\e -> posixToString e.event.created_at) events
+    groupBy (\e -> posixToString e.event.created_at) <| List.map Tuple.second <| Dict.toList events
 
 
 
@@ -75,34 +78,34 @@ type Msg
     | ApiRespondedWork Event (Result Http.Error Work)
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         ApiRespondedProjects (Ok projectList) ->
             ( { model | projectData = Api.Success projectList }
-            , Cmd.none
+            , Effect.none
             )
 
         ApiRespondedProjects (Err err) ->
             ( { model | projectData = Api.Failure err }
-            , Cmd.none
+            , Effect.none
             )
 
         ApiRespondedEvents (Ok eventList) ->
             ( model
-            , Cmd.batch (List.map (\event -> getWork event.work.id { onResponse = ApiRespondedWork event }) eventList)
+            , Effect.batchCmd (List.map (\event -> getWork event.work.id { onResponse = ApiRespondedWork event }) eventList)
             )
 
         ApiRespondedEvents (Err _) ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
         ApiRespondedWork event (Ok work) ->
-            ( { model | eventsData = EventWithWork event work :: model.eventsData }
-            , Cmd.none
+            ( { model | eventsData = Dict.insert event.id (EventWithWork event work) model.eventsData }
+            , Effect.none
             )
 
         ApiRespondedWork _ (Err _) ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
 
 

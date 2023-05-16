@@ -7,25 +7,28 @@ import Api.State exposing (State(..), stateToString)
 import Api.Work exposing (Work, getWork, getWorkEvents)
 import Dict exposing (Dict)
 import Dict.Extra exposing (groupBy)
+import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes exposing (class)
 import Http
 import Markdown.Parser as Markdown
 import Markdown.Renderer
 import Page exposing (Page)
+import Route exposing (Route)
+import Shared
 import View exposing (View)
 import Views.LoadingPage exposing (PageState(..), viewLoadingPage)
 import Views.Posix exposing (posixToString)
 import Views.String exposing (capitalize)
 
 
-page : { id : String } -> Page Model Msg
-page params =
-    Page.element
-        { init = init params.id
+page : Shared.Model -> Route { id : String } -> Page Model Msg
+page model route =
+    Page.new
+        { init = init route.params.id
         , update = update
         , subscriptions = subscriptions
-        , view = view params.id
+        , view = view route.params.id model.authenticated
         }
 
 
@@ -50,13 +53,13 @@ modelToPageState model =
             Loading
 
 
-init : String -> ( Model, Cmd Msg )
-init id =
+init : String -> () -> ( Model, Effect Msg )
+init id _ =
     ( { workData = Api.Loading
       , projectData = Api.Loading
       , eventsData = Api.Loading
       }
-    , Cmd.batch
+    , Effect.batchCmd
         [ getWork (Maybe.withDefault 0 (String.toInt id)) { onResponse = ApiRespondedWork }
         , getWorkEvents (Maybe.withDefault 0 (String.toInt id)) { onResponse = ApiRespondedEvents }
         ]
@@ -73,37 +76,37 @@ type Msg
     | ApiRespondedEvents (Result Http.Error (List Event))
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         ApiRespondedWork (Ok work) ->
             ( { model | workData = Api.Success work }
-            , getProject work.project.id { onResponse = ApiRespondedProject }
+            , Effect.sendCmd <| getProject work.project.id { onResponse = ApiRespondedProject }
             )
 
         ApiRespondedWork (Err err) ->
             ( { model | workData = Api.Failure err }
-            , Cmd.none
+            , Effect.none
             )
 
         ApiRespondedProject (Ok project) ->
             ( { model | projectData = Api.Success project }
-            , Cmd.none
+            , Effect.none
             )
 
         ApiRespondedProject (Err err) ->
             ( { model | projectData = Api.Failure err }
-            , Cmd.none
+            , Effect.none
             )
 
         ApiRespondedEvents (Ok events) ->
             ( { model | eventsData = Api.Success events }
-            , Cmd.none
+            , Effect.none
             )
 
         ApiRespondedEvents (Err err) ->
             ( { model | eventsData = Api.Failure err }
-            , Cmd.none
+            , Effect.none
             )
 
 
@@ -214,8 +217,8 @@ optionalImage url =
             []
 
 
-view : String -> Model -> View Msg
-view id model =
+view : String -> Bool -> Model -> View Msg
+view id is_authenticated model =
     let
         title =
             case model.workData of
@@ -242,11 +245,15 @@ view id model =
                     Html.div [] []
 
         controls =
-            Html.div [ class "controls container" ]
-                [ Html.a [ Html.Attributes.href <| "/works/" ++ id ++ "/state" ] [ Html.text "Change State" ]
-                , Html.a [ Html.Attributes.href <| "/works/" ++ id ++ "/edit" ] [ Html.text "Edit" ]
-                , Html.a [ Html.Attributes.href <| "/works/" ++ id ++ "/delete" ] [ Html.text "Delete" ]
-                ]
+            if is_authenticated then
+                Html.div [ class "controls container" ]
+                    [ Html.a [ Html.Attributes.href <| "/works/" ++ id ++ "/state" ] [ Html.text "Change State" ]
+                    , Html.a [ Html.Attributes.href <| "/works/" ++ id ++ "/edit" ] [ Html.text "Edit" ]
+                    , Html.a [ Html.Attributes.href <| "/works/" ++ id ++ "/delete" ] [ Html.text "Delete" ]
+                    ]
+
+            else
+                Html.div [] []
     in
     { title = title
     , body = [ viewLoadingPage modelToPageState model [ workView, eventsView ], controls ]

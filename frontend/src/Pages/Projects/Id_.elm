@@ -4,10 +4,13 @@ import Api
 import Api.Project exposing (Project, getProject, getProjectWorks)
 import Api.State exposing (State(..))
 import Api.Work exposing (Work)
+import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes exposing (class)
 import Http
 import Page exposing (Page)
+import Route exposing (Route)
+import Shared
 import View exposing (View)
 import Views.LoadingPage exposing (PageState(..), viewLoadingPage)
 import Views.Posix exposing (comparePosix, posixToString)
@@ -15,13 +18,13 @@ import Views.String exposing (capitalize)
 import Views.SummaryList exposing (Summary, summaryList)
 
 
-page : { id : String } -> Page Model Msg
-page params =
-    Page.element
-        { init = init params.id
+page : Shared.Model -> Route { id : String } -> Page Model Msg
+page model route =
+    Page.new
+        { init = init route.params.id
         , update = update
         , subscriptions = subscriptions
-        , view = view params.id
+        , view = view route.params.id model.authenticated
         }
 
 
@@ -45,10 +48,10 @@ modelToPageState model =
             Loading
 
 
-init : String -> ( Model, Cmd Msg )
-init id =
+init : String -> () -> ( Model, Effect Msg )
+init id _ =
     ( { projectData = Api.Loading, projectWorksData = Api.Loading }
-    , Cmd.batch
+    , Effect.batchCmd
         [ getProject (Maybe.withDefault 0 (String.toInt id)) { onResponse = ApiRespondedProject }
         , getProjectWorks (Maybe.withDefault 0 (String.toInt id)) { onResponse = ApiRespondedWorks }
         ]
@@ -64,27 +67,27 @@ type Msg
     | ApiRespondedWorks (Result Http.Error (List Work))
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         ApiRespondedProject (Ok project) ->
             ( { model | projectData = Api.Success project }
-            , Cmd.none
+            , Effect.none
             )
 
         ApiRespondedProject (Err err) ->
             ( { model | projectData = Api.Failure err }
-            , Cmd.none
+            , Effect.none
             )
 
         ApiRespondedWorks (Ok works) ->
             ( { model | projectWorksData = Api.Success works }
-            , Cmd.none
+            , Effect.none
             )
 
         ApiRespondedWorks (Err err) ->
             ( { model | projectWorksData = Api.Failure err }
-            , Cmd.none
+            , Effect.none
             )
 
 
@@ -154,8 +157,8 @@ viewWorks works =
         ]
 
 
-view : String -> Model -> View Msg
-view id model =
+view : String -> Bool -> Model -> View Msg
+view id is_authenticated model =
     let
         title =
             case model.projectData of
@@ -182,10 +185,14 @@ view id model =
                     Html.div [] []
 
         controls =
-            Html.div [ class "controls container" ]
-                [ Html.a [ Html.Attributes.href <| "/projects/" ++ id ++ "/edit" ] [ Html.text "Edit" ]
-                , Html.a [ Html.Attributes.href <| "/projects/" ++ id ++ "/delete" ] [ Html.text "Delete" ]
-                ]
+            if is_authenticated then
+                Html.div [ class "controls container" ]
+                    [ Html.a [ Html.Attributes.href <| "/projects/" ++ id ++ "/edit" ] [ Html.text "Edit" ]
+                    , Html.a [ Html.Attributes.href <| "/projects/" ++ id ++ "/delete" ] [ Html.text "Delete" ]
+                    ]
+
+            else
+                Html.div [] []
     in
     { title = title
     , body = [ viewLoadingPage modelToPageState model [ projectView, worksView ], controls ]
