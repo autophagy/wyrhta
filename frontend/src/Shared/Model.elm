@@ -11,4 +11,4 @@ own file, so they can be imported by `Effect.elm`
 
 -}
 type alias Model =
-    { authenticated : Bool }
+    { authenticated : Maybe Bool }

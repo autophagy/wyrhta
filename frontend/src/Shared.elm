@@ -43,7 +43,7 @@ type alias Model =
 
 init : Result Json.Decode.Error Flags -> Route () -> ( Model, Effect Msg )
 init flagsResult route =
-    ( { authenticated = False }
+    ( { authenticated = Nothing }
     , Effect.auth
     )
 
@@ -63,12 +63,12 @@ update route msg model =
             ( model, Effect.sendCmd <| auth { onResponse = Shared.Msg.ApiRespondedAuthenticated } )
 
         Shared.Msg.ApiRespondedAuthenticated (Ok ()) ->
-            ( { model | authenticated = True }
+            ( { model | authenticated = Just True }
             , Effect.none
             )
 
         Shared.Msg.ApiRespondedAuthenticated (Err _) ->
-            ( { model | authenticated = False }
+            ( { model | authenticated = Just False }
             , Effect.none
             )
 

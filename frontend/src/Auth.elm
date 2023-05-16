@@ -5,6 +5,7 @@ import Dict
 import Route exposing (Route)
 import Route.Path
 import Shared
+import View exposing (View)
 
 
 type alias User =
@@ -15,12 +16,17 @@ type alias User =
 -}
 onPageLoad : Shared.Model -> Route () -> Auth.Action.Action User
 onPageLoad shared route =
-    if shared.authenticated then
-        Auth.Action.loadPageWithUser {}
+    case shared.authenticated of
+        Nothing ->
+            Auth.Action.showLoadingPage (View.fromString "...")
 
-    else
-        Auth.Action.pushRoute
-            { path = Route.Path.Login
-            , query = Dict.empty
-            , hash = Nothing
-            }
+        Just authed ->
+            if authed then
+                Auth.Action.loadPageWithUser {}
+
+            else
+                Auth.Action.pushRoute
+                    { path = Route.Path.Login
+                    , query = Dict.empty
+                    , hash = Nothing
+                    }
