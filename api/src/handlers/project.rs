@@ -21,14 +21,10 @@ struct ProjectDTO {
     created_at: NaiveDateTime,
 }
 
-fn projectdto_to_project(projectdto: ProjectDTO, appstate: &AppState) -> Project {
+fn projectdto_to_project(projectdto: ProjectDTO, _appstate: &AppState) -> Project {
     let images = Images {
-        header: projectdto
-            .header_key
-            .map(|k| format!("{}/{}", appstate.config.images_url, k)),
-        thumbnail: projectdto
-            .thumbnail_key
-            .map(|k| format!("{}/{}", appstate.config.images_url, k)),
+        header: projectdto.header_key,
+        thumbnail: projectdto.thumbnail_key,
     };
 
     Project {
@@ -70,16 +66,10 @@ pub(crate) async fn put_project(
     State(appstate): State<AppState>,
     ExtractJson(data): ExtractJson<PutProject>,
 ) -> EmptyResult {
-    let thumbnail_key = data.thumbnail.as_ref().map(|key| {
-        key.strip_prefix(&format!("{}/", &appstate.config.images_url))
-            .unwrap_or(key)
-            .to_owned()
-    });
-
     sqlx::query("UPDATE projects SET name=?, description=?, thumbnail_key=? WHERE id=?")
         .bind(data.name)
         .bind(data.description)
-        .bind(thumbnail_key)
+        .bind(data.thumbnail)
         .bind(id)
         .execute(&appstate.pool)
         .await
@@ -90,12 +80,6 @@ pub(crate) async fn post_project(
     State(appstate): State<AppState>,
     ExtractJson(data): ExtractJson<PutProject>,
 ) -> JsonResult<i32> {
-    let thumbnail_key = data.thumbnail.as_ref().map(|key| {
-        key.strip_prefix(&format!("{}/", &appstate.config.images_url))
-            .unwrap_or(key)
-            .to_owned()
-    });
-
     sqlx::query_scalar(
         "INSERT INTO projects (name, description, thumbnail_key)
         VALUES (?, ?, ?)
@@ -103,7 +87,7 @@ pub(crate) async fn post_project(
     )
     .bind(data.name)
     .bind(data.description)
-    .bind(thumbnail_key)
+    .bind(data.thumbnail)
     .fetch_one(&appstate.pool)
     .await
     .into()

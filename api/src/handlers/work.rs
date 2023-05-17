@@ -45,14 +45,10 @@ pub(crate) struct WorkDTO {
     created_at: NaiveDateTime,
 }
 
-pub(crate) fn workdto_to_work(workdto: WorkDTO, appstate: &AppState) -> Work {
+pub(crate) fn workdto_to_work(workdto: WorkDTO, _appstate: &AppState) -> Work {
     let images = Images {
-        header: workdto
-            .header_key
-            .map(|k| format!("{}/{}", appstate.config.images_url, k)),
-        thumbnail: workdto
-            .thumbnail_key
-            .map(|k| format!("{}/{}", appstate.config.images_url, k)),
+        header: workdto.header_key,
+        thumbnail: workdto.thumbnail_key,
     };
 
     let clay = Clay {
@@ -150,18 +146,6 @@ pub(crate) async fn put_work(
     State(appstate): State<AppState>,
     ExtractJson(data): ExtractJson<PutWork>,
 ) -> EmptyResult {
-    let thumbnail_key = data.thumbnail.as_ref().map(|key| {
-        key.strip_prefix(&format!("{}/", &appstate.config.images_url))
-            .unwrap_or(key)
-            .to_owned()
-    });
-
-    let header_key = data.header.as_ref().map(|key| {
-        key.strip_prefix(&format!("{}/", &appstate.config.images_url))
-            .unwrap_or(key)
-            .to_owned()
-    });
-
     sqlx::query(
         "UPDATE works
         SET project_id=?, name=?, notes=?, clay_id=?, glaze_description=?,
@@ -173,8 +157,8 @@ pub(crate) async fn put_work(
     .bind(data.notes)
     .bind(data.clay_id)
     .bind(data.glaze_description)
-    .bind(header_key)
-    .bind(thumbnail_key)
+    .bind(data.header)
+    .bind(data.thumbnail)
     .bind(id)
     .execute(&appstate.pool)
     .await
@@ -221,12 +205,7 @@ pub(crate) async fn put_state(
 
 // POST
 
-async fn insert_work(
-    appstate: &AppState,
-    put_work: &PutWork,
-    thumbnail_key: &Option<&str>,
-    header_key: &Option<&str>,
-) -> Result<i32, sqlx::Error> {
+async fn insert_work(appstate: &AppState, put_work: &PutWork) -> Result<i32, sqlx::Error> {
     let id = sqlx::query_scalar::<_, i32>(
         "INSERT INTO works (project_id, name, notes, clay_id, glaze_description, header_key, thumbnail_key)
         VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -237,8 +216,8 @@ async fn insert_work(
     .bind(&put_work.notes)
     .bind(put_work.clay_id)
     .bind(&put_work.glaze_description)
-    .bind(header_key)
-    .bind(thumbnail_key)
+    .bind(&put_work.header)
+    .bind(&put_work.thumbnail)
     .fetch_one(&appstate.pool)
     .await?;
 
@@ -257,19 +236,7 @@ pub(crate) async fn post_work(
     State(appstate): State<AppState>,
     ExtractJson(data): ExtractJson<PutWork>,
 ) -> JsonResult<i32> {
-    let thumbnail_key = data.thumbnail.as_ref().map(|key| {
-        key.strip_prefix(&format!("{}/", &appstate.config.images_url))
-            .unwrap_or(key)
-    });
-
-    let header_key = data.header.as_ref().map(|key| {
-        key.strip_prefix(&format!("{}/", &appstate.config.images_url))
-            .unwrap_or(key)
-    });
-
-    insert_work(&appstate, &data, &thumbnail_key, &header_key)
-        .await
-        .into()
+    insert_work(&appstate, &data).await.into()
 }
 
 // DELETE
