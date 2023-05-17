@@ -15,6 +15,7 @@ import Markdown.Parser as Markdown
 import Markdown.Renderer
 import Page exposing (Page)
 import Route exposing (Route)
+import Route.Path
 import Shared
 import View exposing (View)
 import Views.LoadingPage exposing (PageState(..), viewLoadingPage)
@@ -82,6 +83,11 @@ update msg model =
         ApiRespondedWork (Ok work) ->
             ( { model | workData = Api.Success work }
             , Effect.sendCmd <| getProject work.project.id { onResponse = ApiRespondedProject }
+            )
+
+        ApiRespondedWork (Err (Http.BadStatus 404)) ->
+            ( { model | workData = Api.Failure (Http.BadStatus 404) }
+            , Effect.pushRoute { path = Route.Path.NotFound_, query = Dict.empty, hash = Nothing }
             )
 
         ApiRespondedWork (Err err) ->

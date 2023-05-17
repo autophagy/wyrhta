@@ -10,12 +10,14 @@ import Html.Attributes exposing (class)
 import Http
 import Page exposing (Page)
 import Route exposing (Route)
+import Route.Path
 import Shared
 import View exposing (View)
 import Views.LoadingPage exposing (PageState(..), viewLoadingPage)
 import Views.Posix exposing (comparePosix, posixToString)
 import Views.String exposing (capitalize)
 import Views.SummaryList exposing (Summary, summaryList)
+import Dict
 
 
 page : Shared.Model -> Route { id : String } -> Page Model Msg
@@ -73,6 +75,11 @@ update msg model =
         ApiRespondedProject (Ok project) ->
             ( { model | projectData = Api.Success project }
             , Effect.none
+            )
+
+        ApiRespondedProject (Err (Http.BadStatus 404)) ->
+            ( { model | projectData = Api.Failure (Http.BadStatus 404) }
+            , Effect.pushRoute { path = Route.Path.NotFound_, query = Dict.empty, hash = Nothing }
             )
 
         ApiRespondedProject (Err err) ->
