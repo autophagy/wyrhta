@@ -171,10 +171,10 @@ view id is_authenticated model =
         title =
             case model.projectData of
                 Api.Success project ->
-                    project.name
+                    Just project.name
 
                 _ ->
-                    ""
+                    Nothing
 
         projectView =
             case model.projectData of
@@ -202,6 +202,6 @@ view id is_authenticated model =
             else
                 Html.div [] []
     in
-    { title = Just title
+    { title = title
     , body = [ viewLoadingPage modelToPageState model [ projectView, worksView ], controls, footer ]
     }
