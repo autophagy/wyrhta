@@ -274,6 +274,6 @@ viewWorkDetails model =
 
 view : Model -> View Msg
 view model =
-    { title = "Creating New Work"
+    { title = Just "Creating New Work"
     , body = [ viewWorkDetails model ]
     }

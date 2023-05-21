@@ -18,6 +18,7 @@ import Route exposing (Route)
 import Route.Path
 import Shared
 import View exposing (View)
+import Views.Footer exposing (footer)
 import Views.LoadingPage exposing (PageState(..), viewLoadingPage)
 import Views.Posix exposing (posixToString)
 import Views.String exposing (capitalize)
@@ -261,6 +262,6 @@ view id is_authenticated model =
             else
                 Html.div [] []
     in
-    { title = title
-    , body = [ viewLoadingPage modelToPageState model [ workView, eventsView ], controls ]
+    { title = Just title
+    , body = [ viewLoadingPage modelToPageState model [ workView, eventsView ], controls, footer ]
     }

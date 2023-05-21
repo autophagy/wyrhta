@@ -148,6 +148,6 @@ viewProjectDetails model =
 
 view : Model -> View Msg
 view model =
-    { title = "Creating New Project"
+    { title = Just "Creating New Project"
     , body = [ viewProjectDetails model ]
     }

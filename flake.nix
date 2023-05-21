@@ -32,6 +32,10 @@
               buildInputs = [ nodejs ];
             };
 
+            server = with pkgs; mkShell {
+              buildInputs = [ caddy ];
+            };
+
           };
 
           formatter = pkgs.nixpkgs-fmt;

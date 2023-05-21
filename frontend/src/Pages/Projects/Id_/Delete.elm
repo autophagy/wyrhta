@@ -122,6 +122,6 @@ viewProjectDeletion model =
 
 view : Model -> View Msg
 view model =
-    { title = "Deleting Project [" ++ String.fromInt model.id ++ "]"
+    { title = Just <| "Deleting Project [" ++ String.fromInt model.id ++ "]"
     , body = [ viewProjectDeletion model ]
     }

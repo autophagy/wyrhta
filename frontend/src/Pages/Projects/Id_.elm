@@ -4,6 +4,7 @@ import Api
 import Api.Project exposing (Project, getProject, getProjectWorks)
 import Api.State exposing (State(..))
 import Api.Work exposing (Work)
+import Dict
 import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes exposing (class)
@@ -13,11 +14,11 @@ import Route exposing (Route)
 import Route.Path
 import Shared
 import View exposing (View)
+import Views.Footer exposing (footer)
 import Views.LoadingPage exposing (PageState(..), viewLoadingPage)
 import Views.Posix exposing (comparePosix, posixToString)
 import Views.String exposing (capitalize)
 import Views.SummaryList exposing (Summary, summaryList)
-import Dict
 
 
 page : Shared.Model -> Route { id : String } -> Page Model Msg
@@ -201,6 +202,6 @@ view id is_authenticated model =
             else
                 Html.div [] []
     in
-    { title = title
-    , body = [ viewLoadingPage modelToPageState model [ projectView, worksView ], controls ]
+    { title = Just title
+    , body = [ viewLoadingPage modelToPageState model [ projectView, worksView ], controls, footer ]
     }

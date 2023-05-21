@@ -168,6 +168,6 @@ viewProjectDetails model =
 
 view : Model -> View Msg
 view model =
-    { title = "Editing Project [" ++ String.fromInt model.id ++ "]"
+    { title = Just <| "Editing Project [" ++ String.fromInt model.id ++ "]"
     , body = [ viewProjectDetails model ]
     }

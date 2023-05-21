@@ -95,6 +95,6 @@ viewLogin model =
 
 view : Model -> View Msg
 view model =
-    { title = "Login"
+    { title = Just "Login"
     , body = [ viewLogin model ]
     }

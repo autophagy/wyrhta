@@ -129,7 +129,7 @@ view model =
                 _ ->
                     ( Html.div [] [], Html.div [] [] )
     in
-    { title = "Dashboard"
+    { title = Just "Dashboard"
     , body =
         [ Html.div [ class "container" ]
             [ Html.h1 [] [ Html.text "Dashboard" ]

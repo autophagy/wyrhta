@@ -15,6 +15,7 @@ import Page exposing (Page)
 import Route exposing (Route)
 import Shared
 import View exposing (View)
+import Views.Footer exposing (footer)
 import Views.LoadingPage exposing (PageState(..), viewLoadingPage)
 import Views.Posix exposing (posixToString)
 import Views.SummaryList exposing (Summary, summaryList)
@@ -176,9 +177,10 @@ view model =
         eventsView =
             Html.div [ class "container" ] [ Html.h1 [] [ Html.text "Activity" ], Html.div [] (viewEvents (groupEvents model.eventsData)) ]
     in
-    { title = "Wyrhta Ceramics"
+    { title = Nothing
     , body =
         [ splashView
         , viewLoadingPage modelToPageState model [ eventsView, projectsView ]
+        , footer
         ]
     }

@@ -123,6 +123,6 @@ viewWorkDeletion model =
 
 view : Model -> View Msg
 view model =
-    { title = "Deleting Work [" ++ String.fromInt model.id ++ "]"
+    { title = Just <| "Deleting Work [" ++ String.fromInt model.id ++ "]"
     , body = [ viewWorkDeletion model ]
     }
