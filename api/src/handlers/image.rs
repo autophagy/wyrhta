@@ -27,14 +27,14 @@ pub(crate) async fn upload_image_to_s3(
             appstate
                 .s3_client
                 .put_object()
-                .bucket(&appstate.config.images_bucket)
+                .bucket(&appstate.config.s3.images_bucket)
                 .key(&key)
                 .body(data.into())
                 .content_type(&content_type)
                 .send()
                 .await
                 .map_err(aws_sdk_s3::Error::from)
-                .map(|_| format!("{}/{}", &appstate.config.images_url, &key))
+                .map(|_| format!("{}/{}", &appstate.config.s3.images_url, &key))
                 .into()
         }
         None => Err(Error::ImageUpload).into(),

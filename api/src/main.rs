@@ -1,3 +1,4 @@
+mod config;
 mod error;
 mod handlers;
 mod jwt;
@@ -13,9 +14,11 @@ use axum::{
 };
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePool, SqlitePoolOptions};
 use std::net::SocketAddr;
+use std::path::Path;
 use tower_http::trace::{self, TraceLayer};
 use tracing::Level;
 
+use config::Config;
 use handlers::auth::{auth as is_authed, login};
 use handlers::clay::clays;
 use handlers::event::events;
@@ -35,16 +38,13 @@ pub struct AppState {
     s3_client: Client,
 }
 
-#[derive(Clone)]
-pub struct Config {
-    images_url: String,
-    images_bucket: String,
-    password: String,
-    jwt_secret: String,
-}
-
 #[tokio::main]
 async fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    let config_path = &args.get(1).expect("Expected argument for config path");
+    let config_path = Path::new(&config_path);
+    let config = Config::from_path(config_path);
+
     let opts = SqliteConnectOptions::new()
         .filename("db.sl3")
         .journal_mode(SqliteJournalMode::Delete)
@@ -62,13 +62,6 @@ async fn main() {
 
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     let s3_client = Client::new(&shared_config);
-
-    let config = Config {
-        images_url: "https://img.wyrhtaceramics.com".to_string(),
-        images_bucket: "img.wyrhtaceramics.com".to_string(),
-        password: "$argon2id$v=19$m=19456,t=2,p=1$wSoSk4YK2nWjFDYdviljNA$5GkXeEOzJC/sA7tZjeWvr3334RjX+pzzvpDZzl2zui0".to_string(),
-        jwt_secret: "super-secret".to_string(),
-    };
 
     let state = AppState {
         config,

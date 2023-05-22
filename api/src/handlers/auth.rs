@@ -17,7 +17,7 @@ pub(crate) async fn login(
     State(state): State<AppState>,
     Json(body): Json<LoginUser>,
 ) -> Result<impl IntoResponse, Error> {
-    let is_valid = match PasswordHash::new(&state.config.password) {
+    let is_valid = match PasswordHash::new(&state.config.auth.hash) {
         Ok(parsed_hash) => Argon2::default()
             .verify_password(body.password.as_bytes(), &parsed_hash)
             .map_or(false, |_| true),
@@ -36,7 +36,7 @@ pub(crate) async fn login(
     let token = encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(state.config.jwt_secret.as_ref()),
+        &EncodingKey::from_secret(state.config.auth.jwt_secret.as_ref()),
     )
     .unwrap();
 

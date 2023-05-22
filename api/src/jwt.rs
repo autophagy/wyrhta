@@ -21,7 +21,7 @@ pub(crate) async fn auth<B>(
 
     let _claims = decode::<TokenClaims>(
         &token,
-        &DecodingKey::from_secret(data.config.jwt_secret.as_ref()),
+        &DecodingKey::from_secret(data.config.auth.jwt_secret.as_ref()),
         &Validation::default(),
     )
     .map_err(|_| Error::InvalidJWT)?

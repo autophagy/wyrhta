@@ -1,0 +1,10 @@
+{
+    "s3": {
+        "images_url": "https://img.wyrhtaceramics.com",
+        "images_bucket": "img.wyrhtaceramics.com"
+    },
+    "auth": {
+        "hash": "$argon2id$v=19$m=19456,t=2,p=1$wSoSk4YK2nWjFDYdviljNA$5GkXeEOzJC/sA7tZjeWvr3334RjX+pzzvpDZzl2zui0",
+        "jwt_secret": "super-secret"
+    }
+}
