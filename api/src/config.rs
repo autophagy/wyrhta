@@ -18,6 +18,7 @@ pub struct AuthConfig {
 pub struct Config {
     pub s3: S3Config,
     pub auth: AuthConfig,
+    pub db: String,
 }
 
 impl Config {

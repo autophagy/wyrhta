@@ -46,7 +46,7 @@ async fn main() {
     let config = Config::from_path(config_path);
 
     let opts = SqliteConnectOptions::new()
-        .filename("db.sl3")
+        .filename(&config.db)
         .journal_mode(SqliteJournalMode::Delete)
         .create_if_missing(true);
 
