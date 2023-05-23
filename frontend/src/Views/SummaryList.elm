@@ -1,7 +1,7 @@
 module Views.SummaryList exposing (Summary, summaryList)
 
 import Html exposing (Html)
-import Html.Attributes exposing (class)
+import Html.Attributes as A
 
 
 type alias Summary =
@@ -14,7 +14,7 @@ type alias Summary =
 
 summaryList : List Summary -> Html msg
 summaryList items =
-    Html.div [ class "summary-list" ] <| List.map summaryCard items
+    Html.div [ A.class "summary-list" ] <| List.map summaryCard items
 
 
 summaryCard : Summary -> Html msg
@@ -28,10 +28,10 @@ summaryCard item =
                 Just url ->
                     url
     in
-    Html.div [ class "summary-card" ]
-        [ Html.div [ class "thumbnail" ] [ Html.img [ Html.Attributes.src image_src ] [] ]
-        , Html.div [ class "summary" ]
-            [ Html.a [ Html.Attributes.href item.link ] [ Html.h3 [] [ Html.text item.title ] ]
+    Html.a [ A.class "summary-card", A.href item.link ]
+        [ Html.div [ A.class "thumbnail" ] [ Html.img [ A.src image_src ] [] ]
+        , Html.div [ A.class "summary" ]
+            [ Html.h3 [] [ Html.text item.title ]
             , Html.div [] [ Html.text item.summary ]
             ]
         ]

@@ -160,6 +160,18 @@ h2 {
     background-color: #EAD9CB;
     overflow: hidden;
     border-radius: 10px 10px 0px 0px;
+    font-weight: normal;
+    transition: all ease 0.2s;
+
+    &:hover {
+      transform: scale(1.02);
+      text-decoration: none;
+      border-bottom: none;
+    }
+
+    &:hover::after {
+      opacity: 0;
+    }
 
     .thumbnail {
       img {
