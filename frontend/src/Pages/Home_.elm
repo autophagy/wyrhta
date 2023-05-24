@@ -60,7 +60,7 @@ modelToPageState model =
 init : () -> ( Model, Effect Msg )
 init _ =
     ( { projectData = Api.Loading, eventsData = Dict.empty }
-    , Effect.batchCmd [ getProjects { onResponse = ApiRespondedProjects }, getEventsWithLimit 5 { onResponse = ApiRespondedEvents } ]
+    , Effect.batchCmd [ getProjects { onResponse = ApiRespondedProjects }, getEventsWithLimit 10 { onResponse = ApiRespondedEvents } ]
     )
 
 
