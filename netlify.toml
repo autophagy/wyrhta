@@ -1,7 +1,7 @@
 [build]
   base = "frontend/"
   publish = "dist/"
-  command = "npx elm-land build"
+  command = "npm run build"
 
 [[redirects]]
   from = "/api/*"
