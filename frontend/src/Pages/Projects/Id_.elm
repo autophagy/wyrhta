@@ -27,7 +27,7 @@ page model route =
         { init = init route.params.id
         , update = update
         , subscriptions = subscriptions
-        , view = view route.params.id <| Maybe.withDefault False model.authenticated
+        , view = view route.params.id model.authenticated
         }
 
 

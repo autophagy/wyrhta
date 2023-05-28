@@ -16,17 +16,12 @@ type alias User =
 -}
 onPageLoad : Shared.Model -> Route () -> Auth.Action.Action User
 onPageLoad shared route =
-    case shared.authenticated of
-        Nothing ->
-            Auth.Action.showLoadingPage (View.fromString "...")
+    if shared.authenticated then
+        Auth.Action.loadPageWithUser {}
 
-        Just authed ->
-            if authed then
-                Auth.Action.loadPageWithUser {}
-
-            else
-                Auth.Action.pushRoute
-                    { path = Route.Path.Login
-                    , query = Dict.empty
-                    , hash = Nothing
-                    }
+    else
+        Auth.Action.pushRoute
+            { path = Route.Path.Login
+            , query = Dict.empty
+            , hash = Nothing
+            }
