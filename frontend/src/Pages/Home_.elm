@@ -43,15 +43,20 @@ type alias EventWithWork =
 
 type alias Model =
     { projectData : Api.Data (List Project)
-    , eventsData : Dict Int EventWithWork
+    , eventsData : Dict Int (Maybe EventWithWork)
+    , skipEventsLoading : Bool
     }
 
 
 modelToPageState : Model -> PageState
 modelToPageState model =
     case ( model.projectData, model.eventsData ) of
-        ( Api.Success _, _ ) ->
-            Loaded
+        ( Api.Success _, events ) ->
+            if (not <| hasNothing events) || model.skipEventsLoading then
+                Loaded
+
+            else
+                Loading
 
         ( _, _ ) ->
             Loading
@@ -59,14 +64,25 @@ modelToPageState model =
 
 init : () -> ( Model, Effect Msg )
 init _ =
-    ( { projectData = Api.Loading, eventsData = Dict.empty }
+    ( { projectData = Api.Loading, eventsData = Dict.empty, skipEventsLoading = False }
     , Effect.batchCmd [ getProjects { onResponse = ApiRespondedProjects }, getEventsWithLimit 10 { onResponse = ApiRespondedEvents } ]
     )
 
 
-groupEvents : Dict Int EventWithWork -> Dict String (List EventWithWork)
+groupEvents : List EventWithWork -> Dict String (List EventWithWork)
 groupEvents events =
-    groupBy (\e -> posixToString e.event.created_at) <| List.map Tuple.second <| Dict.toList events
+    groupBy (\e -> posixToString e.event.created_at) events
+
+
+hasNothing : Dict Int (Maybe EventWithWork) -> Bool
+hasNothing dict =
+    Dict.isEmpty dict || (Dict.values dict |> List.any (\v -> v == Nothing))
+
+
+justValues : Dict Int (Maybe EventWithWork) -> List EventWithWork
+justValues dict =
+    Dict.values dict
+        |> List.filterMap identity
 
 
 
@@ -93,7 +109,7 @@ update msg model =
             )
 
         ApiRespondedEvents (Ok eventList) ->
-            ( model
+            ( { model | eventsData = List.map (\event -> ( event.id, Nothing )) eventList |> Dict.fromList, skipEventsLoading = List.isEmpty eventList }
             , Effect.batchCmd (List.map (\event -> getWork event.work.id { onResponse = ApiRespondedWork event }) eventList)
             )
 
@@ -101,7 +117,7 @@ update msg model =
             ( model, Effect.none )
 
         ApiRespondedWork event (Ok work) ->
-            ( { model | eventsData = Dict.insert event.id (EventWithWork event work) model.eventsData }
+            ( { model | eventsData = Dict.insert event.id (Just <| EventWithWork event work) model.eventsData }
             , Effect.none
             )
 
@@ -175,7 +191,11 @@ view model =
                     Html.div [] []
 
         eventsView =
-            Html.div [ class "container" ] [ Html.h1 [] [ Html.text "Activity" ], Html.div [] (viewEvents (groupEvents model.eventsData)) ]
+            if hasNothing model.eventsData then
+                Html.div [] []
+
+            else
+                Html.div [ class "container" ] [ Html.h1 [] [ Html.text "Activity" ], Html.div [] (viewEvents (groupEvents (justValues model.eventsData))) ]
     in
     { title = Nothing
     , body =
