@@ -175,7 +175,7 @@ viewWork work project =
                     []
 
                 Just notes ->
-                    [ Html.div [ class "notes" ] [ Html.h2 [] [ Html.text "Notes" ], Html.div [] [ viewNotes notes ] ] ]
+                    [ Html.div [ class "container notes" ] [ Html.h2 [] [ Html.text "Notes" ], Html.div [] [ viewNotes notes ] ] ]
     in
     Html.div []
         [ Html.div [ class "container work-name" ]
@@ -183,7 +183,7 @@ viewWork work project =
             , Html.div [] [ Html.text "Work in ", Html.a [ Html.Attributes.href ("/projects/" ++ String.fromInt project.id) ] [ Html.text project.name ], Html.text "." ]
             ]
         , Html.div [ class "container header" ] <| optionalImage work.images.header
-        , Html.div [ class "container" ] (viewWorkDetails work :: notesSection)
+        , Html.div [ ] (viewWorkDetails work :: notesSection)
         ]
 
 
@@ -207,7 +207,7 @@ optionalDetailRow k maybeV =
 
 viewWorkDetails : Work -> Html Msg
 viewWorkDetails work =
-    Html.div [ class "work-details" ]
+    Html.div [ class "container  work-details" ]
         (detailRow "State" (capitalize <| stateToString work.current_state.state)
             :: detailRow "Clay Body" work.clay.name
             :: optionalDetailRow "Glaze" work.glaze_description
