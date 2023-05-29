@@ -9,5 +9,4 @@ footer =
     Html.footer [ A.class "container" ]
         [ Html.a [ A.href "/" ] [ Html.text "Home" ]
         , Html.a [ A.href "/about" ] [ Html.text "About" ]
-        , Html.a [ A.href "https://github.com/autophagy/wyrhta-ceramics" ] [ Html.text "Source" ]
         ]
