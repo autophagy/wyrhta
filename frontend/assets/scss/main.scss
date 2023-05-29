@@ -340,6 +340,13 @@ footer {
 
 @media (max-width: 680px) {
 
+  .splash {
+    background-image: url("/img/splash-mobile.jpg");
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .summary-list {
     justify-content: center;
   }
