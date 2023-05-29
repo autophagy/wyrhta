@@ -14,7 +14,19 @@
       "meta": [
         { "charset": "UTF-8" },
         { "http-equiv": "X-UA-Compatible", "content": "IE=edge" },
-        { "name": "viewport", "content": "width=device-width, initial-scale=1.0" }
+        { "name": "viewport", "content": "width=device-width, initial-scale=1.0" },
+        { "name": "description", "content": "Tracking ceramic works." },
+        { "property": "og:url", "content": "https://wyrhtaceramics.com/" },
+        { "property": "og:type", "content": "website" },
+        { "property": "og:title", "content": "Wyrhta Ceramics" },
+        { "property": "og:description", "content": "Tracking ceramic works." },
+        { "property": "og:image", "content": "https://wyrhtaceramics.com/img/card.jpg" },
+        { "name": "twitter:card", "content": "summary_large_image" },
+        { "property": "twitter:domain", "content": "wyrhtaceramics.com" },
+        { "property": "twitter:url", "content": "https://wyrhtaceramics.com/" },
+        { "name": "twitter:title", "content": "Wyrhta Ceramics" },
+        { "name": "twitter:description", "content": "Tracking ceramic works." },
+        { "name": "twitter:image", "content": "https://wyrhtaceramics.com/img/card.jpg" }
       ],
       "link": [
         { "rel": "stylesheet", "href": "/dist/main.css" },
