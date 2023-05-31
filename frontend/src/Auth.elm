@@ -20,8 +20,4 @@ onPageLoad shared route =
         Auth.Action.loadPageWithUser {}
 
     else
-        Auth.Action.pushRoute
-            { path = Route.Path.Login
-            , query = Dict.empty
-            , hash = Nothing
-            }
+        Auth.Action.showLoadingPage View.none
