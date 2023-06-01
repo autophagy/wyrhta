@@ -13,6 +13,7 @@ import Html.Attributes exposing (class)
 import Http
 import Page exposing (Page)
 import Route exposing (Route)
+import Route.Path
 import Shared
 import View exposing (View)
 import Views.Footer exposing (footer)
@@ -141,7 +142,7 @@ subscriptions model =
 projectSummary : Project -> Summary
 projectSummary project =
     { thumbnail = project.images.thumbnail
-    , link = "/projects/" ++ String.fromInt project.id
+    , path = Route.Path.Projects_Id_ { id = String.fromInt project.id }
     , title = project.name
     , summary = Maybe.withDefault "" project.description
     }
@@ -164,7 +165,7 @@ viewEvent e =
                 Nothing ->
                     " was " ++ stateToString event.current_state ++ "."
     in
-    Html.div [] [ Html.a [ Html.Attributes.href ("/works/" ++ String.fromInt work.id) ] [ Html.text work.name ], Html.text eventStr ]
+    Html.div [] [ Html.a [ Route.Path.href <| Route.Path.Works_Id_ { id = String.fromInt work.id } ] [ Html.text work.name ], Html.text eventStr ]
 
 
 viewEvents : Dict String (List EventWithWork) -> List (Html Msg)

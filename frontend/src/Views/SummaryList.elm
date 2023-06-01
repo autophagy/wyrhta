@@ -2,11 +2,12 @@ module Views.SummaryList exposing (Summary, summaryList)
 
 import Html exposing (Html)
 import Html.Attributes as A
+import Route.Path exposing (Path)
 
 
 type alias Summary =
     { thumbnail : Maybe String
-    , link : String
+    , path : Path
     , title : String
     , summary : String
     }
@@ -28,7 +29,7 @@ summaryCard item =
                 Just url ->
                     url
     in
-    Html.a [ A.class "summary-card", A.href item.link ]
+    Html.a [ A.class "summary-card", Route.Path.href item.path ]
         [ Html.div [ A.class "thumbnail" ] [ Html.img [ A.src image_src ] [] ]
         , Html.div [ A.class "summary" ]
             [ Html.h3 [] [ Html.text item.title ]

@@ -30,7 +30,7 @@ page model route =
         { init = init route.params.id
         , update = update
         , subscriptions = subscriptions
-        , view = view route.params.id model.authenticated
+        , view = view route.params.id
         }
 
 
@@ -180,7 +180,7 @@ viewWork work project =
     Html.div []
         [ Html.div [ class "container work-name" ]
             [ Html.h1 [] [ Html.text work.name ]
-            , Html.div [] [ Html.text "Work in ", Html.a [ Html.Attributes.href ("/projects/" ++ String.fromInt project.id) ] [ Html.text project.name ], Html.text "." ]
+            , Html.div [] [ Html.text "Work in ", Html.a [ Route.Path.href <| Route.Path.Projects_Id_ { id = String.fromInt project.id } ] [ Html.text project.name ], Html.text "." ]
             ]
         , Html.div [ class "container header" ] <| optionalImage work.images.header
         , Html.div [] (viewWorkDetails work :: notesSection)
@@ -224,8 +224,8 @@ optionalImage url =
             []
 
 
-view : String -> Bool -> Model -> View Msg
-view id is_authenticated model =
+view : String -> Model -> View Msg
+view id model =
     let
         title =
             case model.workData of
@@ -250,18 +250,7 @@ view id is_authenticated model =
 
                 _ ->
                     Html.div [] []
-
-        controls =
-            if is_authenticated then
-                Html.div [ class "controls container" ]
-                    [ Html.a [ Html.Attributes.href <| "/works/" ++ id ++ "/state" ] [ Html.text "Change State" ]
-                    , Html.a [ Html.Attributes.href <| "/works/" ++ id ++ "/edit" ] [ Html.text "Edit" ]
-                    , Html.a [ Html.Attributes.href <| "/works/" ++ id ++ "/delete" ] [ Html.text "Delete" ]
-                    ]
-
-            else
-                Html.div [] []
     in
     { title = title
-    , body = [ viewLoadingPage modelToPageState model [ workView, eventsView ], controls, footer ]
+    , body = [ viewLoadingPage modelToPageState model [ workView, eventsView ], footer ]
     }

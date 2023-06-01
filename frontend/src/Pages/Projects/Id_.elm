@@ -27,7 +27,7 @@ page model route =
         { init = init route.params.id
         , update = update
         , subscriptions = subscriptions
-        , view = view route.params.id model.authenticated
+        , view = view route.params.id
         }
 
 
@@ -150,7 +150,7 @@ stateToString state =
 workSummary : Work -> Summary
 workSummary work =
     { thumbnail = work.images.thumbnail
-    , link = "/works/" ++ String.fromInt work.id
+    , path = Route.Path.Works_Id_ { id = String.fromInt work.id }
     , title = work.name
     , summary = (capitalize <| stateToString work.current_state.state) ++ " since " ++ posixToString work.current_state.transitioned_at
     }
@@ -165,8 +165,8 @@ viewWorks works =
         ]
 
 
-view : String -> Bool -> Model -> View Msg
-view id is_authenticated model =
+view : String -> Model -> View Msg
+view id model =
     let
         title =
             case model.projectData of
@@ -191,17 +191,7 @@ view id is_authenticated model =
 
                 _ ->
                     Html.div [] []
-
-        controls =
-            if is_authenticated then
-                Html.div [ class "controls container" ]
-                    [ Html.a [ Html.Attributes.href <| "/projects/" ++ id ++ "/edit" ] [ Html.text "Edit" ]
-                    , Html.a [ Html.Attributes.href <| "/projects/" ++ id ++ "/delete" ] [ Html.text "Delete" ]
-                    ]
-
-            else
-                Html.div [] []
     in
     { title = title
-    , body = [ viewLoadingPage modelToPageState model [ projectView, worksView ], controls, footer ]
+    , body = [ viewLoadingPage modelToPageState model [ projectView, worksView ], footer ]
     }

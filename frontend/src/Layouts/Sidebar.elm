@@ -4,7 +4,6 @@ import Api.Project exposing (Project, getProjectWorks, getProjects)
 import Api.State exposing (State(..))
 import Api.Work exposing (Work)
 import Dict exposing (Dict)
-import Dict.Extra
 import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes as A
