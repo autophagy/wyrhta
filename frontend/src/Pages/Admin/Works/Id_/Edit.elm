@@ -1,8 +1,9 @@
-module Pages.Works.Id_.Edit exposing (Model, Msg, page)
+module Pages.Admin.Works.Id_.Edit exposing (Model, Msg, page)
 
 import Api
 import Api.Clay exposing (Clay, getClays)
 import Api.Project exposing (Project, getProjects)
+import Api.State exposing (State(..), enumState, putState, stateToString)
 import Api.Upload exposing (upload)
 import Api.Work exposing (UpdateWork, Work, getWork, putWork)
 import Auth
@@ -14,6 +15,7 @@ import Html exposing (Html)
 import Html.Attributes as A
 import Html.Events as E
 import Http
+import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
 import Route.Path
@@ -22,12 +24,20 @@ import View exposing (View)
 
 
 page : Auth.User -> Shared.Model -> Route { id : String } -> Page Model Msg
-page _ _ route =
+page user _ route =
     Page.new
         { init = init route.params.id
         , update = update
         , subscriptions = subscriptions
         , view = view
+        }
+        |> Page.withLayout (layout user)
+
+
+layout : Auth.User -> Model -> Layouts.Layout
+layout user model =
+    Layouts.Sidebar
+        { sidebar = {}
         }
 
 
@@ -47,6 +57,8 @@ type alias Model =
     , glazeDescription : Maybe String
     , thumbnail : Maybe String
     , header : Maybe String
+    , update : Maybe (Api.Data ())
+    , currentState : State
     , updateState : Maybe (Api.Data ())
     }
 
@@ -66,9 +78,11 @@ init id_ _ =
       , notes = Nothing
       , clayId = 0
       , glazeDescription = Nothing
-      , updateState = Nothing
+      , update = Nothing
       , thumbnail = Nothing
       , header = Nothing
+      , currentState = Unknown
+      , updateState = Nothing
       }
     , Effect.batch <|
         List.map Effect.sendCmd
@@ -81,6 +95,31 @@ init id_ _ =
 
 
 -- UPDATE
+
+
+stringToState : String -> State
+stringToState s =
+    case s of
+        "thrown" ->
+            Thrown
+
+        "being trimmed" ->
+            Trimming
+
+        "recycled" ->
+            Recycled
+
+        "awaiting bisque firing" ->
+            AwaitingBisqueFiring
+
+        "awaiting glaze firing" ->
+            AwaitingGlazeFiring
+
+        "finished" ->
+            Finished
+
+        _ ->
+            Unknown
 
 
 type Msg
@@ -100,6 +139,9 @@ type Msg
     | SelectedHeader File
     | UploadedNewHeader (Result Http.Error String)
     | ApiResponededUpdateWork (Result Http.Error ())
+    | StateUpdated String
+    | UpdateState
+    | ApiResponededUpdateState (Result Http.Error ())
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
@@ -116,7 +158,7 @@ update msg model =
             )
 
         ApiRespondedWork (Ok work) ->
-            ( { model | workData = Api.Success work, id = work.id, projectId = work.project.id, name = work.name, notes = work.notes, clayId = work.clay.id, glazeDescription = work.glaze_description, thumbnail = work.images.thumbnail, header = work.images.header }
+            ( { model | workData = Api.Success work, id = work.id, projectId = work.project.id, name = work.name, notes = work.notes, clayId = work.clay.id, glazeDescription = work.glaze_description, thumbnail = work.images.thumbnail, header = work.images.header, currentState = work.current_state.state }
             , Effect.none
             )
 
@@ -180,7 +222,7 @@ update msg model =
             ( { model | thumbnail = Just url }, Effect.none )
 
         UpdateWork ->
-            ( { model | updateState = Just Api.Loading }
+            ( { model | update = Just Api.Loading }
             , Effect.sendCmd <|
                 putWork model.id
                     { project_id = model.projectId
@@ -195,13 +237,22 @@ update msg model =
             )
 
         ApiResponededUpdateWork (Ok ()) ->
-            ( { model | updateState = Just <| Api.Success () }
-            , Effect.pushRoute
-                { path = Route.Path.Works_Id_ { id = String.fromInt model.id }
-                , query = Dict.empty
-                , hash = Nothing
-                }
+            ( { model | update = Just <| Api.Success () }
+            , Effect.none
             )
+
+        StateUpdated state ->
+            ( { model | currentState = stringToState state }
+            , Effect.none
+            )
+
+        UpdateState ->
+            ( { model | updateState = Just Api.Loading }
+            , Effect.sendCmd <| putState model.id model.currentState { onResponse = ApiResponededUpdateState }
+            )
+
+        ApiResponededUpdateState (Ok ()) ->
+            ( { model | updateState = Just <| Api.Success () }, Effect.none )
 
         _ ->
             ( model, Effect.none )
@@ -266,7 +317,7 @@ viewWorkDetails : Model -> Html Msg
 viewWorkDetails model =
     let
         buttonText =
-            case model.updateState of
+            case model.update of
                 Nothing ->
                     "Update"
 
@@ -302,8 +353,44 @@ viewWorkDetails model =
         ]
 
 
+stateToOption : State -> State -> Html Msg
+stateToOption selected state =
+    Html.option [ A.value <| stateToString state, A.selected (selected == state) ] [ Html.text <| stateToString state ]
+
+
+viewStates : Model -> Html Msg
+viewStates model =
+    Html.select [ E.onInput StateUpdated ] (List.map (stateToOption model.currentState) enumState)
+
+
+viewWorkState : Model -> Html Msg
+viewWorkState model =
+    let
+        buttonText =
+            case model.updateState of
+                Nothing ->
+                    "Update"
+
+                Just (Api.Success _) ->
+                    "Updated!"
+
+                _ ->
+                    "..."
+    in
+    Html.div [ A.class "container" ]
+        [ Html.h1 [] [ Html.text <| "Editing Work State [" ++ String.fromInt model.id ++ "]" ]
+        , Html.div [ A.class "settings work-settings" ]
+            [ Html.div [ A.class "left" ]
+                [ Html.h2 [] [ Html.text "State" ]
+                , viewStates model
+                ]
+            ]
+        , Html.button [ E.onClick UpdateState ] [ Html.text buttonText ]
+        ]
+
+
 view : Model -> View Msg
 view model =
     { title = Just <| "Editing Project [" ++ String.fromInt model.id ++ "]"
-    , body = [ viewWorkDetails model ]
+    , body = [ viewWorkDetails model, viewWorkState model ]
     }

@@ -1,4 +1,4 @@
-module Pages.Projects.Id_.Edit exposing (Model, Msg, page)
+module Pages.Admin.Projects.Id_.Edit exposing (Model, Msg, page)
 
 import Api
 import Api.Project exposing (Project, UpdateProject, getProject, putProject)
@@ -12,6 +12,7 @@ import Html exposing (Html)
 import Html.Attributes as A
 import Html.Events as E
 import Http
+import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
 import Route.Path
@@ -20,12 +21,20 @@ import View exposing (View)
 
 
 page : Auth.User -> Shared.Model -> Route { id : String } -> Page Model Msg
-page _ _ route =
+page user _ route =
     Page.new
         { init = init route.params.id
         , update = update
         , subscriptions = subscriptions
         , view = view
+        }
+        |> Page.withLayout (layout user)
+
+
+layout : Auth.User -> Model -> Layouts.Layout
+layout user model =
+    Layouts.Sidebar
+        { sidebar = {}
         }
 
 
@@ -105,7 +114,7 @@ update msg model =
 
         ApiRespondedUpdateProject (Ok ()) ->
             ( { model | updateState = Just <| Api.Success () }
-            , Effect.pushRoute { path = Route.Path.Projects_Id_ { id = String.fromInt model.id }, query = Dict.empty, hash = Nothing }
+            , Effect.none
             )
 
         SelectdNewThumbnailUpload ->

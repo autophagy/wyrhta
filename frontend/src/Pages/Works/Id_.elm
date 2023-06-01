@@ -183,7 +183,7 @@ viewWork work project =
             , Html.div [] [ Html.text "Work in ", Html.a [ Html.Attributes.href ("/projects/" ++ String.fromInt project.id) ] [ Html.text project.name ], Html.text "." ]
             ]
         , Html.div [ class "container header" ] <| optionalImage work.images.header
-        , Html.div [ ] (viewWorkDetails work :: notesSection)
+        , Html.div [] (viewWorkDetails work :: notesSection)
         ]
 
 
