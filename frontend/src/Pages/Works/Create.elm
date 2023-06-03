@@ -14,6 +14,7 @@ import Html exposing (Html)
 import Html.Attributes as A
 import Html.Events as E
 import Http
+import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
 import Route.Path
@@ -21,14 +22,26 @@ import Shared
 import View exposing (View)
 
 
+layout : Auth.User -> Model -> Layouts.Layout
+layout user model =
+    Layouts.Sidebar
+        { sidebar = {}
+        }
+
+
 page : Auth.User -> Shared.Model -> Route () -> Page Model Msg
-page _ _ _ =
+page user _ route =
+    let
+        projectId =
+            Maybe.andThen String.toInt (Dict.get "project" route.query)
+    in
     Page.new
-        { init = init
+        { init = init projectId
         , update = update
         , subscriptions = subscriptions
         , view = view
         }
+        |> Page.withLayout (layout user)
 
 
 
@@ -38,7 +51,7 @@ page _ _ _ =
 type alias Model =
     { projectData : Api.Data (List Project)
     , clayData : Api.Data (List Clay)
-    , projectId : Int
+    , projectId : Maybe Int
     , name : String
     , notes : Maybe String
     , clayId : Int
@@ -49,11 +62,11 @@ type alias Model =
     }
 
 
-init : () -> ( Model, Effect Msg )
-init () =
+init : Maybe Int -> () -> ( Model, Effect Msg )
+init projectId () =
     ( { projectData = Api.Loading
       , clayData = Api.Loading
-      , projectId = 0
+      , projectId = projectId
       , name = ""
       , notes = Nothing
       , clayId = 0
@@ -95,7 +108,16 @@ update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         ApiRespondedProjects (Ok projects) ->
-            ( { model | projectData = Api.Success projects, projectId = Maybe.withDefault 0 <| Maybe.map .id <| List.head projects }
+            let
+                projectId =
+                    case model.projectId of
+                        Just id ->
+                            id
+
+                        Nothing ->
+                            List.head projects |> Maybe.map .id |> Maybe.withDefault 0
+            in
+            ( { model | projectData = Api.Success projects, projectId = Just projectId }
             , Effect.none
             )
 
@@ -105,7 +127,7 @@ update msg model =
             )
 
         ProjectIdUpdated id ->
-            ( { model | projectId = Maybe.withDefault 0 <| String.toInt id }
+            ( { model | projectId = String.toInt id }
             , Effect.none
             )
 
@@ -165,7 +187,7 @@ update msg model =
 
         CreateWork ->
             ( { model | updateState = Just Api.Loading }
-            , Effect.sendCmd <| postWork { project_id = model.projectId, name = model.name, notes = model.notes, clay_id = model.clayId, glaze_description = model.glazeDescription, thumbnail = model.thumbnail, header = model.header } { onResponse = ApiResponededCreateWork }
+            , Effect.sendCmd <| postWork { project_id = Maybe.withDefault 0 model.projectId, name = model.name, notes = model.notes, clay_id = model.clayId, glaze_description = model.glazeDescription, thumbnail = model.thumbnail, header = model.header } { onResponse = ApiResponededCreateWork }
             )
 
         ApiResponededCreateWork (Ok id) ->
@@ -206,7 +228,7 @@ viewProjects model =
                 _ ->
                     []
     in
-    Html.select [ E.onInput ProjectIdUpdated ] (List.map (projectToOption <| String.fromInt model.projectId) projects)
+    Html.select [ E.onInput ProjectIdUpdated ] (List.map (projectToOption <| String.fromInt <| Maybe.withDefault 0 model.projectId) projects)
 
 
 clayToOption : String -> Clay -> Html Msg

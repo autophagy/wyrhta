@@ -12,6 +12,10 @@
       margin: 0;
       margin-bottom: 1em;
 
+      li {
+        position: relative;
+      }
+
       .active > a {
         background: #fff6ee;
         border-left: 0.5em solid #c39e84;
@@ -23,6 +27,19 @@
         font-weight: bold;
         padding: 0.5em 1em;
       }
+    }
+
+    .create-work {
+      background: url("/img/new.svg");
+      background-repeat: repeat;
+      background-repeat: no-repeat;
+      background-position: center;
+      min-width: 0;
+      padding: 14px;
+      margin: 0;
+      position: absolute;
+      top: 10px;
+      right: 10px;
     }
 
     .works {

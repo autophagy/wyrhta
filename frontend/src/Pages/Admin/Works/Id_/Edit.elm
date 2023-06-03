@@ -7,7 +7,6 @@ import Api.State exposing (State(..), enumState, putState, stateToString)
 import Api.Upload exposing (upload)
 import Api.Work exposing (UpdateWork, Work, getWork, putWork)
 import Auth
-import Dict
 import Effect exposing (Effect)
 import File exposing (File)
 import File.Select as Select
@@ -18,7 +17,6 @@ import Http
 import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
-import Route.Path
 import Shared
 import View exposing (View)
 

@@ -60,6 +60,7 @@ type Msg
     = ApiRespondedProjects (Result Http.Error (List Project))
     | ApiRespondedProjectWorks Project (Result Http.Error (List Work))
     | ToggleShowFinished Int
+    | CreateWork Int
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
@@ -82,6 +83,9 @@ update msg model =
 
                 Nothing ->
                     ( model, Effect.none )
+
+        CreateWork id ->
+            ( model, Effect.pushRoute { path = Route.Path.Works_Create, query = Dict.singleton "project" <| String.fromInt id, hash = Nothing } )
 
         _ ->
             ( model, Effect.none )
@@ -144,6 +148,7 @@ viewProject route project =
     in
     Html.li [ A.classList [ ( "active", route.path == path ) ] ]
         [ Html.a [ Route.Path.href path ] [ Html.text project.project.name ]
+        , Html.button [ A.class "create-work", E.onClick <| CreateWork project.project.id ] []
         , Html.div [ A.class "works" ] [ Html.ul [] [ viewWorks route project ] ]
         ]
 
