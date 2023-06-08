@@ -45,18 +45,32 @@ async fn main() {
     let config_path = Path::new(&config_path);
     let config = Config::from_path(config_path);
 
-    let opts = SqliteConnectOptions::new()
+    let migrate_opts = SqliteConnectOptions::new()
         .filename(&config.db)
         .journal_mode(SqliteJournalMode::Delete)
+        .pragma("foreign_keys", "OFF")
         .create_if_missing(true);
+
+    let migrate_pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(migrate_opts)
+        .await
+        .expect("cannot connect to db");
+
+    sqlx::migrate!("db/migrations")
+        .run(&migrate_pool)
+        .await
+        .unwrap();
+
+    let opts = SqliteConnectOptions::new()
+        .filename(&config.db)
+        .journal_mode(SqliteJournalMode::Delete);
 
     let pool = SqlitePoolOptions::new()
         .max_connections(1)
         .connect_with(opts)
         .await
         .expect("cannot connect to db");
-
-    sqlx::migrate!("db/migrations").run(&pool).await.unwrap();
 
     let region_provider = RegionProviderChain::first_try(Region::new("eu-central-1"));
 

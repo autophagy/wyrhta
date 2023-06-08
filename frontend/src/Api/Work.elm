@@ -3,7 +3,7 @@ module Api.Work exposing (UpdateWork, Work, deleteWork, getWork, getWorkEvents, 
 import Api exposing (ApiResource, Route(..), andThenDecode, apiResourceDecoder)
 import Api.Clay exposing (Clay, clayDecoder)
 import Api.Event exposing (Event, eventsDecoder)
-import Api.State exposing (State, stateDecoder)
+import Api.State exposing (State, stateDecoder, stateEncoder)
 import Http
 import Json.Decode exposing (Decoder, field, int, list, map2, maybe, string, succeed)
 import Json.Decode.Extra exposing (datetime)
@@ -93,6 +93,18 @@ getWorkEvents id options =
 -- PUT
 
 
+type alias CreateWork =
+    { project_id : Int
+    , name : String
+    , notes : Maybe String
+    , clay_id : Int
+    , glaze_description : Maybe String
+    , state : State
+    , thumbnail : Maybe String
+    , header : Maybe String
+    }
+
+
 type alias UpdateWork =
     { project_id : Int
     , name : String
@@ -104,8 +116,8 @@ type alias UpdateWork =
     }
 
 
-workEncoder : UpdateWork -> Encode.Value
-workEncoder work =
+updateWorkEncoder : UpdateWork -> Encode.Value
+updateWorkEncoder work =
     Encode.object
         [ ( "project_id", Encode.int work.project_id )
         , ( "name", Encode.string work.name )
@@ -117,20 +129,34 @@ workEncoder work =
         ]
 
 
+createWorkEncoder : CreateWork -> Encode.Value
+createWorkEncoder work =
+    Encode.object
+        [ ( "project_id", Encode.int work.project_id )
+        , ( "name", Encode.string work.name )
+        , ( "notes", Encode.maybe Encode.string work.notes )
+        , ( "clay_id", Encode.int work.clay_id )
+        , ( "glaze_description", Encode.maybe Encode.string work.glaze_description )
+        , ( "state", stateEncoder work.state )
+        , ( "thumbnail", Encode.maybe Encode.string work.thumbnail )
+        , ( "header", Encode.maybe Encode.string work.header )
+        ]
+
+
 putWork : Int -> UpdateWork -> { onResponse : Result Http.Error () -> msg } -> Cmd msg
-putWork id project options =
+putWork id work options =
     Api.put
         { route = [ Works, Id id ]
-        , body = Http.jsonBody <| workEncoder project
+        , body = Http.jsonBody <| updateWorkEncoder work
         , expect = Http.expectWhatever options.onResponse
         }
 
 
-postWork : UpdateWork -> { onResponse : Result Http.Error Int -> msg } -> Cmd msg
-postWork project options =
+postWork : CreateWork -> { onResponse : Result Http.Error Int -> msg } -> Cmd msg
+postWork work options =
     Api.post
         { route = [ Works ]
-        , body = Http.jsonBody <| workEncoder project
+        , body = Http.jsonBody <| createWorkEncoder work
         , expect = Http.expectJson options.onResponse int
         }
 

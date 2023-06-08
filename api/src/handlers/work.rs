@@ -5,7 +5,7 @@ use serde::Serialize;
 
 use crate::error::{internal_error, Error};
 use crate::models::{
-    is_valid_transition, ApiResource, Clay, CurrentState, Event, Images, PutWork,
+    is_valid_transition, ApiResource, Clay, CurrentState, Event, Images, PostWork, PutWork,
     State as WorkState, Work,
 };
 use crate::result::{EmptyResult, JsonResult, OptionalResult};
@@ -205,27 +205,30 @@ pub(crate) async fn put_state(
 
 // POST
 
-async fn insert_work(appstate: &AppState, put_work: &PutWork) -> Result<i32, sqlx::Error> {
+async fn insert_work(appstate: &AppState, post_work: &PostWork) -> Result<i32, sqlx::Error> {
+    let initial_state_id: &i32 = &post_work.state.clone().into();
+
     let id = sqlx::query_scalar::<_, i32>(
         "INSERT INTO works (project_id, name, notes, clay_id, glaze_description, header_key, thumbnail_key)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         RETURNING id"
     )
-    .bind(put_work.project_id)
-    .bind(&put_work.name)
-    .bind(&put_work.notes)
-    .bind(put_work.clay_id)
-    .bind(&put_work.glaze_description)
-    .bind(&put_work.header)
-    .bind(&put_work.thumbnail)
+    .bind(post_work.project_id)
+    .bind(&post_work.name)
+    .bind(&post_work.notes)
+    .bind(post_work.clay_id)
+    .bind(&post_work.glaze_description)
+    .bind(&post_work.header)
+    .bind(&post_work.thumbnail)
     .fetch_one(&appstate.pool)
     .await?;
 
     sqlx::query(
         "INSERT INTO events (work_id, current_state)
-        VALUES (?, 1)",
+        VALUES (?, ?)",
     )
     .bind(id)
+    .bind(initial_state_id)
     .execute(&appstate.pool)
     .await?;
 
@@ -234,7 +237,7 @@ async fn insert_work(appstate: &AppState, put_work: &PutWork) -> Result<i32, sql
 
 pub(crate) async fn post_work(
     State(appstate): State<AppState>,
-    ExtractJson(data): ExtractJson<PutWork>,
+    ExtractJson(data): ExtractJson<PostWork>,
 ) -> JsonResult<i32> {
     insert_work(&appstate, &data).await.into()
 }

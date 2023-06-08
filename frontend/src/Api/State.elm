@@ -1,4 +1,4 @@
-module Api.State exposing (State(..), enumState, isTerminalState, putState, stateDecoder, stateToString)
+module Api.State exposing (State(..), enumInitialState, enumState, isTerminalState, putState, stateDecoder, stateEncoder, stateToString)
 
 import Api exposing (Route(..))
 import Http
@@ -9,6 +9,7 @@ import Json.Encode as Encode
 type State
     = Thrown
     | Trimming
+    | Handbuilt
     | AwaitingBisqueFiring
     | AwaitingGlazeFiring
     | Finished
@@ -18,7 +19,12 @@ type State
 
 enumState : List State
 enumState =
-    [ Thrown, Trimming, AwaitingBisqueFiring, AwaitingGlazeFiring, Finished, Recycled ]
+    [ Thrown, Trimming, Handbuilt, AwaitingBisqueFiring, AwaitingGlazeFiring, Finished, Recycled ]
+
+
+enumInitialState : List State
+enumInitialState =
+    [ Thrown, Handbuilt ]
 
 
 isTerminalState : State -> Bool
@@ -45,6 +51,9 @@ stateToString s =
 
         Trimming ->
             "being trimmed"
+
+        Handbuilt ->
+            "handbuilt"
 
         Recycled ->
             "recycled"
@@ -74,6 +83,9 @@ stateDecoder =
                     "Trimming" ->
                         succeed Trimming
 
+                    "Handbuilt" ->
+                        succeed Handbuilt
+
                     "AwaitingBisqueFiring" ->
                         succeed AwaitingBisqueFiring
 
@@ -101,6 +113,9 @@ stateEncoder s =
 
                 Trimming ->
                     "Trimming"
+
+                Handbuilt ->
+                    "Handbuilt"
 
                 AwaitingBisqueFiring ->
                     "AwaitingBisqueFiring"

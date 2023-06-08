@@ -3,6 +3,7 @@ module Pages.Works.Create exposing (Model, Msg, page)
 import Api
 import Api.Clay exposing (Clay, getClays)
 import Api.Project exposing (Project, getProjects)
+import Api.State exposing (State(..), enumInitialState, stateToString)
 import Api.Upload exposing (upload)
 import Api.Work exposing (postWork)
 import Auth
@@ -58,6 +59,7 @@ type alias Model =
     , glazeDescription : Maybe String
     , thumbnail : Maybe String
     , header : Maybe String
+    , state : State
     , updateState : Maybe (Api.Data ())
     }
 
@@ -73,6 +75,7 @@ init projectId () =
       , glazeDescription = Nothing
       , updateState = Nothing
       , thumbnail = Nothing
+      , state = Thrown
       , header = Nothing
       }
     , Effect.batch
@@ -84,6 +87,19 @@ init projectId () =
 
 
 -- UPDATE
+
+
+stringToState : String -> State
+stringToState s =
+    case s of
+        "thrown" ->
+            Thrown
+
+        "handbuilt" ->
+            Handbuilt
+
+        _ ->
+            Unknown
 
 
 type Msg
@@ -100,6 +116,7 @@ type Msg
     | SelectNewHeaderUpload
     | SelectedHeader File
     | UploadedNewHeader (Result Http.Error String)
+    | StateUpdated String
     | CreateWork
     | ApiResponededCreateWork (Result Http.Error Int)
 
@@ -167,6 +184,11 @@ update msg model =
             , Effect.none
             )
 
+        StateUpdated state ->
+            ( { model | state = stringToState state }
+            , Effect.none
+            )
+
         SelectNewHeaderUpload ->
             ( model, Effect.sendCmd <| Select.file [ "image/*" ] SelectedHeader )
 
@@ -187,7 +209,18 @@ update msg model =
 
         CreateWork ->
             ( { model | updateState = Just Api.Loading }
-            , Effect.sendCmd <| postWork { project_id = Maybe.withDefault 0 model.projectId, name = model.name, notes = model.notes, clay_id = model.clayId, glaze_description = model.glazeDescription, thumbnail = model.thumbnail, header = model.header } { onResponse = ApiResponededCreateWork }
+            , Effect.sendCmd <|
+                postWork
+                    { project_id = Maybe.withDefault 0 model.projectId
+                    , name = model.name
+                    , notes = model.notes
+                    , clay_id = model.clayId
+                    , glaze_description = model.glazeDescription
+                    , state = model.state
+                    , thumbnail = model.thumbnail
+                    , header = model.header
+                    }
+                    { onResponse = ApiResponededCreateWork }
             )
 
         ApiResponededCreateWork (Ok id) ->
@@ -254,6 +287,16 @@ viewClays model =
     Html.select [ E.onInput ClayIdUpdated ] (List.map (clayToOption <| String.fromInt model.clayId) clays)
 
 
+stateToOption : State -> State -> Html Msg
+stateToOption selected state =
+    Html.option [ A.value <| stateToString state, A.selected (selected == state) ] [ Html.text <| stateToString state ]
+
+
+viewStates : Model -> Html Msg
+viewStates model =
+    Html.select [ E.onInput StateUpdated ] (List.map (stateToOption model.state) enumInitialState)
+
+
 viewWorkDetails : Model -> Html Msg
 viewWorkDetails model =
     let
@@ -282,6 +325,8 @@ viewWorkDetails model =
                 , viewClays model
                 , Html.h2 [] [ Html.text "Glaze Description" ]
                 , Html.input [ A.type_ "text", A.name "work-name", A.value <| Maybe.withDefault "" model.glazeDescription, E.onInput GlazeDescriptionUpdated ] []
+                , Html.h2 [] [ Html.text "Initial State" ]
+                , viewStates model
                 ]
             , Html.div [ A.class "right" ]
                 [ Html.h2 [] [ Html.text "Header" ]

@@ -131,6 +131,9 @@ stateToString state =
         Trimming ->
             "in trimming"
 
+        Handbuilt ->
+            "handbuilt"
+
         AwaitingBisqueFiring ->
             "awaiting bisque firing"
 
