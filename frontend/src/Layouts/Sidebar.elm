@@ -220,6 +220,9 @@ workCategory work =
         Trimming ->
             InProgress
 
+        Handbuilt ->
+            InProgress
+
         AwaitingBisqueFiring ->
             AwaitingFiring
 

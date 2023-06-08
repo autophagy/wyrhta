@@ -13,6 +13,7 @@ pub(crate) struct Clay {
 pub(crate) enum State {
     Thrown,
     Trimming,
+    Handbuilt,
     AwaitingBisqueFiring,
     AwaitingGlazeFiring,
     Finished,
@@ -25,10 +26,11 @@ impl From<i32> for State {
         match id {
             1 => State::Thrown,
             2 => State::Trimming,
-            3 => State::AwaitingBisqueFiring,
-            4 => State::AwaitingGlazeFiring,
-            5 => State::Finished,
-            6 => State::Recycled,
+            3 => State::Handbuilt,
+            4 => State::AwaitingBisqueFiring,
+            5 => State::AwaitingGlazeFiring,
+            6 => State::Finished,
+            7 => State::Recycled,
             _ => State::Unknown,
         }
     }
@@ -39,10 +41,11 @@ impl From<State> for i32 {
         match state {
             State::Thrown => 1,
             State::Trimming => 2,
-            State::AwaitingBisqueFiring => 3,
-            State::AwaitingGlazeFiring => 4,
-            State::Finished => 5,
-            State::Recycled => 6,
+            State::Handbuilt => 3,
+            State::AwaitingBisqueFiring => 4,
+            State::AwaitingGlazeFiring => 5,
+            State::Finished => 6,
+            State::Recycled => 7,
             State::Unknown => 0,
         }
     }
@@ -52,6 +55,7 @@ pub(crate) fn is_valid_transition(previous_state: State, current_state: State) -
     match (previous_state, current_state) {
         (State::Thrown, State::Trimming) => true,
         (State::Trimming, State::AwaitingBisqueFiring) => true,
+        (State::Handbuilt, State::AwaitingBisqueFiring) => true,
         (State::AwaitingBisqueFiring, State::AwaitingGlazeFiring) => true,
         (State::AwaitingGlazeFiring, State::Finished) => true,
         (State::Recycled, State::Thrown) => true,
@@ -129,6 +133,18 @@ pub(crate) struct PutWork {
     pub(crate) header: Option<String>,
 }
 
+#[derive(Deserialize, Debug)]
+pub(crate) struct PostWork {
+    pub(crate) project_id: i32,
+    pub(crate) name: String,
+    pub(crate) notes: Option<String>,
+    pub(crate) clay_id: i32,
+    pub(crate) glaze_description: Option<String>,
+    pub(crate) state: State,
+    pub(crate) thumbnail: Option<String>,
+    pub(crate) header: Option<String>,
+}
+
 #[derive(Serialize)]
 pub(crate) struct Images {
     pub(crate) header: Option<String>,
@@ -177,9 +193,14 @@ mod tests {
         // Trimming can only be reached from the thrown state.
         assert!(is_valid_transition(State::Thrown, State::Trimming));
 
-        // Bisque can only be reached from Trimming.
+        // Bisque can only be reached from Trimming and Handbuilt.
         assert!(is_valid_transition(
             State::Trimming,
+            State::AwaitingBisqueFiring
+        ));
+
+        assert!(is_valid_transition(
+            State::Handbuilt,
             State::AwaitingBisqueFiring
         ));
 
@@ -199,6 +220,7 @@ mod tests {
         let valid_recycled_previous_states = vec![
             State::Thrown,
             State::Trimming,
+            State::Handbuilt,
             State::AwaitingBisqueFiring,
             State::AwaitingGlazeFiring,
         ];

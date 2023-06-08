@@ -104,6 +104,9 @@ stringToState s =
         "being trimmed" ->
             Trimming
 
+        "handbuilt" ->
+            Handbuilt
+
         "recycled" ->
             Recycled
 
