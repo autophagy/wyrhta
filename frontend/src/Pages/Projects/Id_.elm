@@ -112,6 +112,34 @@ subscriptions model =
 -- VIEW
 
 
+isViewableWork : Work -> Bool
+isViewableWork work =
+    case work.current_state.state of
+        Thrown ->
+            True
+
+        Trimming ->
+            True
+
+        Handbuilt ->
+            True
+
+        AwaitingBisqueFiring ->
+            True
+
+        AwaitingGlazeFiring ->
+            True
+
+        Finished ->
+            True
+
+        Recycled ->
+            False
+
+        Unknown ->
+            False
+
+
 viewProject : Project -> Html Msg
 viewProject project =
     Html.div []
@@ -164,7 +192,8 @@ viewWorks works =
     Html.div [ class "container" ]
         [ summaryList <|
             List.map workSummary <|
-                List.sortWith (\a b -> comparePosix b.current_state.transitioned_at a.current_state.transitioned_at) works
+                List.sortWith (\a b -> comparePosix b.current_state.transitioned_at a.current_state.transitioned_at) <|
+                    List.filter isViewableWork works
         ]
 
 
