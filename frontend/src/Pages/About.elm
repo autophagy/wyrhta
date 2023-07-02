@@ -81,6 +81,8 @@ pieces.
 I do my work at [Ceramic Kingdom](https://www.ceramickingdomberlin.com/), in Neukölln.
 You can find me elsewhere on the [Fediverse](https://hordburh.autophagy.io/@mika) or
 on [Github](https://github.com/autophagy).
+
+¡No pasarán!
 """
 
 
