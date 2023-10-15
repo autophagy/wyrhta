@@ -140,6 +140,34 @@ isViewableWork work =
             False
 
 
+isInProgressWork : Work -> Bool
+isInProgressWork work =
+    case work.current_state.state of
+        Thrown ->
+            True
+
+        Trimming ->
+            True
+
+        Handbuilt ->
+            True
+
+        AwaitingBisqueFiring ->
+            True
+
+        AwaitingGlazeFiring ->
+            True
+
+        Finished ->
+            False
+
+        Recycled ->
+            False
+
+        Unknown ->
+            False
+
+
 viewProject : Project -> Html Msg
 viewProject project =
     Html.div []
@@ -189,12 +217,16 @@ workSummary work =
 
 viewWorks : List Work -> Html Msg
 viewWorks works =
+    let
+        viewableWorks =
+            List.filter isViewableWork works
+                |> List.sortWith (\a b -> comparePosix b.current_state.transitioned_at a.current_state.transitioned_at)
+
+        ( inProgressWorks, finishedWorks ) =
+            List.partition isInProgressWork viewableWorks
+    in
     Html.div [ class "container" ]
-        [ summaryList <|
-            List.map workSummary <|
-                List.sortWith (\a b -> comparePosix b.current_state.transitioned_at a.current_state.transitioned_at) <|
-                    List.filter isViewableWork works
-        ]
+        [ summaryList <| List.map workSummary (inProgressWorks ++ finishedWorks) ]
 
 
 view : String -> Model -> View Msg
