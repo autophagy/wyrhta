@@ -59,6 +59,7 @@ pub(crate) fn is_valid_transition(previous_state: State, current_state: State) -
         (State::AwaitingBisqueFiring, State::AwaitingGlazeFiring) => true,
         (State::AwaitingGlazeFiring, State::Finished) => true,
         (State::Recycled, State::Thrown) => true,
+        (State::Recycled, State::Handbuilt) => true,
         (previous, State::Recycled) => previous != State::Finished && previous != State::Unknown,
         _ => false,
     }
@@ -178,6 +179,7 @@ mod tests {
     #[test]
     fn test_is_valid_transition() {
         assert!(is_valid_transition(State::Recycled, State::Thrown));
+        assert!(is_valid_transition(State::Recycled, State::Handbuilt));
 
         // Test invalid transitions to Thrown
         let other_states = vec![
