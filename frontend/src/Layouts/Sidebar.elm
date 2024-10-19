@@ -38,6 +38,7 @@ type alias ProjectWithWork =
     { project : Project
     , works : List Work
     , showingFinished : Bool
+    , showingDead : Bool
     }
 
 
@@ -60,6 +61,7 @@ type Msg
     = ApiRespondedProjects (Result Http.Error (List Project))
     | ApiRespondedProjectWorks Project (Result Http.Error (List Work))
     | ToggleShowFinished Int
+    | ToggleShowDead Int
     | CreateWork Int
 
 
@@ -72,7 +74,7 @@ update msg model =
             )
 
         ApiRespondedProjectWorks project (Ok worksList) ->
-            ( { model | projects = Dict.insert project.id { project = project, works = worksList, showingFinished = False } model.projects }
+            ( { model | projects = Dict.insert project.id { project = project, works = worksList, showingFinished = False, showingDead = False} model.projects }
             , Effect.none
             )
 
@@ -80,6 +82,14 @@ update msg model =
             case Dict.get id model.projects of
                 Just project ->
                     ( { model | projects = Dict.insert id { project | showingFinished = not project.showingFinished } model.projects }, Effect.none )
+
+                Nothing ->
+                    ( model, Effect.none )
+
+        ToggleShowDead id ->
+            case Dict.get id model.projects of
+                Just project ->
+                    ( { model | projects = Dict.insert id { project | showingDead = not project.showingDead } model.projects }, Effect.none )
 
                 Nothing ->
                     ( model, Effect.none )
@@ -164,11 +174,15 @@ viewWorks route project =
 
         finishedWorks =
             List.filter (\w -> workCategory w == Finished) project.works
+
+        deadWorks =
+            List.filter (\w -> workCategory w == Dead) project.works
     in
     Html.div []
         [ viewGroup route "In Progress" inProgressWorks
         , viewGroup route "Awaiting Firing" firingWorks
-        , viewHideableGroup route "Finished Works" project.project.id project.showingFinished finishedWorks
+        , viewHideableGroup route "Finished Works" (ToggleShowFinished project.project.id) project.showingFinished finishedWorks
+        , viewHideableGroup route "Dead Works" (ToggleShowDead project.project.id) project.showingDead deadWorks
         ]
 
 
@@ -181,14 +195,14 @@ viewGroup route group works =
         Html.div [] []
 
 
-viewHideableGroup : Route a -> String -> Int -> Bool -> List Work -> Html Msg
-viewHideableGroup route group id show works =
+viewHideableGroup : Route a -> String -> Msg -> Bool -> List Work -> Html Msg
+viewHideableGroup route group msg show works =
     if List.length works > 0 then
         if show then
-            Html.div [ A.class "group" ] [ Html.div [ A.class "group-name", E.onClick (ToggleShowFinished id) ] [ Html.text group ], Html.ul [] (List.map (viewWork route) works) ]
+            Html.div [ A.class "group" ] [ Html.div [ A.class "group-name", E.onClick msg ] [ Html.text group ], Html.ul [] (List.map (viewWork route) works) ]
 
         else
-            Html.div [ A.class "group" ] [ Html.div [ A.class "group-name", E.onClick (ToggleShowFinished id) ] [ Html.text <| group ++ "..." ], Html.ul [] [] ]
+            Html.div [ A.class "group" ] [ Html.div [ A.class "group-name", E.onClick msg ] [ Html.text <| group ++ "..." ], Html.ul [] [] ]
 
     else
         Html.div [] []
@@ -200,7 +214,7 @@ viewWork route work =
         path =
             Route.Path.Admin_Works_Id__Edit { id = String.fromInt work.id }
     in
-    Html.li [ A.classList [ ( "active", route.path == path ) ] ]
+    Html.li [ A.classList [ ( "active", route.path == path ), ( "dead", workCategory work == Dead )] ]
         [ Html.a [ Route.Path.href path ] [ Html.text work.name ]
         ]
 
@@ -209,6 +223,7 @@ type WorkCategory
     = InProgress
     | AwaitingFiring
     | Finished
+    | Dead
 
 
 workCategory : Work -> WorkCategory
@@ -228,6 +243,9 @@ workCategory work =
 
         AwaitingGlazeFiring ->
             AwaitingFiring
+
+        Recycled ->
+            Dead
 
         _ ->
             Finished
