@@ -121,6 +121,7 @@ pub(crate) struct Work {
     pub(crate) glaze_description: Option<String>,
     pub(crate) images: Images,
     pub(crate) created_at: NaiveDateTime,
+    pub(crate) is_multiple: bool,
 }
 
 #[derive(Deserialize, Debug)]
@@ -132,6 +133,7 @@ pub(crate) struct PutWork {
     pub(crate) glaze_description: Option<String>,
     pub(crate) thumbnail: Option<String>,
     pub(crate) header: Option<String>,
+    pub(crate) is_multiple: bool,
 }
 
 #[derive(Deserialize, Debug)]
@@ -144,6 +146,7 @@ pub(crate) struct PostWork {
     pub(crate) state: State,
     pub(crate) thumbnail: Option<String>,
     pub(crate) header: Option<String>,
+    pub(crate) is_multiple: bool,
 }
 
 #[derive(Serialize)]

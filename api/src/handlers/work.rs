@@ -12,7 +12,7 @@ use crate::result::{EmptyResult, JsonResult, OptionalResult};
 use crate::AppState;
 
 pub(crate) static WORK_DTO_QUERY: &str = "
-SELECT w.id, w.project_id, w.name, w.notes, w.glaze_description, w.created_at, w.header_key, w.thumbnail_key,
+SELECT w.id, w.project_id, w.name, w.notes, w.glaze_description, w.created_at, w.header_key, w.thumbnail_key, w.is_multiple,
 e.current_state_id, e.current_state_transitioned,
 c.id as clay_id, c.name as clay_name, c.description as clay_description, c.shrinkage as clay_shrinkage
 FROM works w
@@ -43,6 +43,7 @@ pub(crate) struct WorkDTO {
     header_key: Option<String>,
     thumbnail_key: Option<String>,
     created_at: NaiveDateTime,
+    is_multiple: bool,
 }
 
 pub(crate) fn workdto_to_work(workdto: WorkDTO, _appstate: &AppState) -> Work {
@@ -71,6 +72,7 @@ pub(crate) fn workdto_to_work(workdto: WorkDTO, _appstate: &AppState) -> Work {
         glaze_description: workdto.glaze_description,
         images,
         created_at: workdto.created_at,
+        is_multiple: workdto.is_multiple,
     }
 }
 
@@ -149,7 +151,7 @@ pub(crate) async fn put_work(
     sqlx::query(
         "UPDATE works
         SET project_id=?, name=?, notes=?, clay_id=?, glaze_description=?,
-        header_key=?, thumbnail_key=?
+        header_key=?, thumbnail_key=?, is_multiple=?
         WHERE id=?",
     )
     .bind(data.project_id)
@@ -159,6 +161,7 @@ pub(crate) async fn put_work(
     .bind(data.glaze_description)
     .bind(data.header)
     .bind(data.thumbnail)
+    .bind(data.is_multiple)
     .bind(id)
     .execute(&appstate.pool)
     .await
@@ -209,8 +212,8 @@ async fn insert_work(appstate: &AppState, post_work: &PostWork) -> Result<i32, s
     let initial_state_id: &i32 = &post_work.state.clone().into();
 
     let id = sqlx::query_scalar::<_, i32>(
-        "INSERT INTO works (project_id, name, notes, clay_id, glaze_description, header_key, thumbnail_key)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        "INSERT INTO works (project_id, name, notes, clay_id, glaze_description, header_key, thumbnail_key, is_multiple)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING id"
     )
     .bind(post_work.project_id)
@@ -220,6 +223,7 @@ async fn insert_work(appstate: &AppState, post_work: &PostWork) -> Result<i32, s
     .bind(&post_work.glaze_description)
     .bind(&post_work.header)
     .bind(&post_work.thumbnail)
+    .bind(&post_work.is_multiple)
     .fetch_one(&appstate.pool)
     .await?;
 
