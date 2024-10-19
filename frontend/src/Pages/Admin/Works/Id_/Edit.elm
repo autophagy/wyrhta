@@ -50,6 +50,7 @@ type alias Model =
     , id : Int
     , projectId : Int
     , name : String
+    , is_multiple : Bool
     , notes : Maybe String
     , clayId : Int
     , glazeDescription : Maybe String
@@ -73,6 +74,7 @@ init id_ _ =
       , id = id
       , projectId = 0
       , name = ""
+      , is_multiple = False
       , notes = Nothing
       , clayId = 0
       , glazeDescription = Nothing
@@ -129,6 +131,7 @@ type Msg
     | ApiRespondedWork (Result Http.Error Work)
     | ProjectIdUpdated String
     | NameUpdated String
+    | IsMultipleUpdated Bool
     | NotesUpdated String
     | ClayIdUpdated String
     | GlazeDescriptionUpdated String
@@ -159,7 +162,7 @@ update msg model =
             )
 
         ApiRespondedWork (Ok work) ->
-            ( { model | workData = Api.Success work, id = work.id, projectId = work.project.id, name = work.name, notes = work.notes, clayId = work.clay.id, glazeDescription = work.glaze_description, thumbnail = work.images.thumbnail, header = work.images.header, currentState = work.current_state.state }
+            ( { model | workData = Api.Success work, id = work.id, projectId = work.project.id, name = work.name, is_multiple = work.is_multiple, notes = work.notes, clayId = work.clay.id, glazeDescription = work.glaze_description, thumbnail = work.images.thumbnail, header = work.images.header, currentState = work.current_state.state }
             , Effect.none
             )
 
@@ -170,6 +173,11 @@ update msg model =
 
         NameUpdated name ->
             ( { model | name = name }
+            , Effect.none
+            )
+
+        IsMultipleUpdated is_multiple ->
+            ( { model | is_multiple = is_multiple }
             , Effect.none
             )
 
@@ -228,6 +236,7 @@ update msg model =
                 putWork model.id
                     { project_id = model.projectId
                     , name = model.name
+                    , is_multiple = model.is_multiple
                     , notes = model.notes
                     , clay_id = model.clayId
                     , glaze_description = model.glazeDescription
@@ -336,6 +345,8 @@ viewWorkDetails model =
                 , viewProjects model
                 , Html.h2 [] [ Html.text "Name" ]
                 , Html.input [ A.type_ "text", A.name "work-name", A.value model.name, E.onInput NameUpdated ] []
+                , Html.h2 [] [ Html.text "Is Multiple Pieces" ]
+                , Html.input [ A.type_ "checkbox", A.name "work-is-multiple", A.checked model.is_multiple, E.onCheck IsMultipleUpdated ] []
                 , Html.h2 [] [ Html.text "Notes" ]
                 , Html.textarea [ A.name "work-notes", A.value <| Maybe.withDefault "" model.notes, E.onInput NotesUpdated ] []
                 , Html.h2 [] [ Html.text "Clay Body" ]

@@ -163,7 +163,7 @@ viewEvent e =
                     " transitioned from " ++ stateToString state ++ " to " ++ stateToString event.current_state ++ "."
 
                 Nothing ->
-                    " was " ++ stateToString event.current_state ++ "."
+                    (if work.is_multiple then " were " else " was ") ++ stateToString event.current_state ++ "."
     in
     Html.div [] [ Html.a [ Route.Path.href <| Route.Path.Works_Id_ { id = String.fromInt work.id } ] [ Html.text work.name ], Html.text eventStr ]
 

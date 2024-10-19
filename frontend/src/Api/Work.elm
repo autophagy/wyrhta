@@ -5,7 +5,7 @@ import Api.Clay exposing (Clay, clayDecoder)
 import Api.Event exposing (Event, eventsDecoder)
 import Api.State exposing (State, stateDecoder, stateEncoder)
 import Http
-import Json.Decode exposing (Decoder, field, int, list, map2, maybe, string, succeed)
+import Json.Decode exposing (Decoder, field, int, list, map2, maybe, string, succeed, bool)
 import Json.Decode.Extra exposing (datetime)
 import Json.Encode as Encode
 import Json.Encode.Extra as Encode
@@ -34,8 +34,8 @@ type alias Work =
     , glaze_description : Maybe String
     , images : Images
     , created_at : Posix
+    , is_multiple : Bool
     }
-
 
 currentStateDecoder : Decoder CurrentState
 currentStateDecoder =
@@ -50,7 +50,6 @@ imagesDecoder =
         (field "header" (maybe string))
         (field "thumbnail" (maybe string))
 
-
 workDecoder : Decoder Work
 workDecoder =
     succeed Work
@@ -63,6 +62,7 @@ workDecoder =
         |> andThenDecode (field "glaze_description" (maybe string))
         |> andThenDecode (field "images" imagesDecoder)
         |> andThenDecode (field "created_at" datetime)
+        |> andThenDecode (field "is_multiple" bool)
 
 
 getWorks : { onResponse : Result Http.Error (List Work) -> msg } -> Cmd msg
@@ -102,6 +102,7 @@ type alias CreateWork =
     , state : State
     , thumbnail : Maybe String
     , header : Maybe String
+    , is_multiple : Bool
     }
 
 
@@ -113,6 +114,7 @@ type alias UpdateWork =
     , glaze_description : Maybe String
     , thumbnail : Maybe String
     , header : Maybe String
+    , is_multiple : Bool
     }
 
 
@@ -126,6 +128,7 @@ updateWorkEncoder work =
         , ( "glaze_description", Encode.maybe Encode.string work.glaze_description )
         , ( "thumbnail", Encode.maybe Encode.string work.thumbnail )
         , ( "header", Encode.maybe Encode.string work.header )
+        , ( "is_multiple", Encode.bool work.is_multiple)
         ]
 
 
@@ -140,6 +143,7 @@ createWorkEncoder work =
         , ( "state", stateEncoder work.state )
         , ( "thumbnail", Encode.maybe Encode.string work.thumbnail )
         , ( "header", Encode.maybe Encode.string work.header )
+        , ( "is_multiple", Encode.bool work.is_multiple)
         ]
 
 

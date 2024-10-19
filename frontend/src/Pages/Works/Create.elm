@@ -54,6 +54,7 @@ type alias Model =
     , clayData : Api.Data (List Clay)
     , projectId : Maybe Int
     , name : String
+    , is_multiple : Bool
     , notes : Maybe String
     , clayId : Int
     , glazeDescription : Maybe String
@@ -70,6 +71,7 @@ init projectId () =
       , clayData = Api.Loading
       , projectId = projectId
       , name = ""
+      , is_multiple = False
       , notes = Nothing
       , clayId = 0
       , glazeDescription = Nothing
@@ -107,6 +109,7 @@ type Msg
     | ApiRespondedClays (Result Http.Error (List Clay))
     | ProjectIdUpdated String
     | NameUpdated String
+    | IsMultipleUpdated Bool
     | NotesUpdated String
     | ClayIdUpdated String
     | GlazeDescriptionUpdated String
@@ -150,6 +153,11 @@ update msg model =
 
         NameUpdated name ->
             ( { model | name = name }
+            , Effect.none
+            )
+
+        IsMultipleUpdated is_multiple ->
+            ( { model | is_multiple = is_multiple }
             , Effect.none
             )
 
@@ -213,6 +221,7 @@ update msg model =
                 postWork
                     { project_id = Maybe.withDefault 0 model.projectId
                     , name = model.name
+                    , is_multiple = model.is_multiple
                     , notes = model.notes
                     , clay_id = model.clayId
                     , glaze_description = model.glazeDescription
@@ -319,6 +328,8 @@ viewWorkDetails model =
                 , viewProjects model
                 , Html.h2 [] [ Html.text "Name" ]
                 , Html.input [ A.type_ "text", A.name "work-name", A.value model.name, E.onInput NameUpdated ] []
+                , Html.h2 [] [ Html.text "Is Multiple Pieces" ]
+                , Html.input [ A.type_ "checkbox", A.name "work-is-multiple", A.checked model.is_multiple, E.onCheck IsMultipleUpdated ] []
                 , Html.h2 [] [ Html.text "Notes" ]
                 , Html.textarea [ A.name "work-notes", A.value <| Maybe.withDefault "" model.notes, E.onInput NotesUpdated ] []
                 , Html.h2 [] [ Html.text "Clay Body" ]
