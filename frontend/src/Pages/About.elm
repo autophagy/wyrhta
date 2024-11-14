@@ -78,7 +78,7 @@ exposed clay and simple glazing. These days I'm mostly working on practicing
 throwing consistently, but have started taking requests from friends for specific
 pieces.
 
-You can find me elsewhere on the [Fediverse](https://hordburh.autophagy.io/@mika) or
+You can find me elsewhere on the [Bluesky](https://bsky.app/profile/autophagy.io) or
 on [Github](https://github.com/autophagy).
 
 ¡No pasarán!
